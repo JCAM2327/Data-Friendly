@@ -10,33 +10,141 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CalidadRouteImport } from './routes/calidad'
+import { Route as DatosRouteImport } from './routes/datos'
+import { Route as EdaRouteImport } from './routes/eda'
+import { Route as HistorialRouteImport } from './routes/historial'
+import { Route as InformesRouteImport } from './routes/informes'
+import { Route as LimpiezaRouteImport } from './routes/limpieza'
+import { Route as MlRouteImport } from './routes/ml'
+import { Route as ValidacionRouteImport } from './routes/validacion'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CalidadRoute = CalidadRouteImport.update({
+  id: '/calidad',
+  path: '/calidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DatosRoute = DatosRouteImport.update({
+  id: '/datos',
+  path: '/datos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EdaRoute = EdaRouteImport.update({
+  id: '/eda',
+  path: '/eda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistorialRoute = HistorialRouteImport.update({
+  id: '/historial',
+  path: '/historial',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InformesRoute = InformesRouteImport.update({
+  id: '/informes',
+  path: '/informes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LimpiezaRoute = LimpiezaRouteImport.update({
+  id: '/limpieza',
+  path: '/limpieza',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MlRoute = MlRouteImport.update({
+  id: '/ml',
+  path: '/ml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ValidacionRoute = ValidacionRouteImport.update({
+  id: '/validacion',
+  path: '/validacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calidad': typeof CalidadRoute
+  '/datos': typeof DatosRoute
+  '/eda': typeof EdaRoute
+  '/historial': typeof HistorialRoute
+  '/informes': typeof InformesRoute
+  '/limpieza': typeof LimpiezaRoute
+  '/ml': typeof MlRoute
+  '/validacion': typeof ValidacionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calidad': typeof CalidadRoute
+  '/datos': typeof DatosRoute
+  '/eda': typeof EdaRoute
+  '/historial': typeof HistorialRoute
+  '/informes': typeof InformesRoute
+  '/limpieza': typeof LimpiezaRoute
+  '/ml': typeof MlRoute
+  '/validacion': typeof ValidacionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calidad': typeof CalidadRoute
+  '/datos': typeof DatosRoute
+  '/eda': typeof EdaRoute
+  '/historial': typeof HistorialRoute
+  '/informes': typeof InformesRoute
+  '/limpieza': typeof LimpiezaRoute
+  '/ml': typeof MlRoute
+  '/validacion': typeof ValidacionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/calidad'
+    | '/datos'
+    | '/eda'
+    | '/historial'
+    | '/informes'
+    | '/limpieza'
+    | '/ml'
+    | '/validacion'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/calidad'
+    | '/datos'
+    | '/eda'
+    | '/historial'
+    | '/informes'
+    | '/limpieza'
+    | '/ml'
+    | '/validacion'
+  id:
+    | '__root__'
+    | '/'
+    | '/calidad'
+    | '/datos'
+    | '/eda'
+    | '/historial'
+    | '/informes'
+    | '/limpieza'
+    | '/ml'
+    | '/validacion'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalidadRoute: typeof CalidadRoute
+  DatosRoute: typeof DatosRoute
+  EdaRoute: typeof EdaRoute
+  HistorialRoute: typeof HistorialRoute
+  InformesRoute: typeof InformesRoute
+  LimpiezaRoute: typeof LimpiezaRoute
+  MlRoute: typeof MlRoute
+  ValidacionRoute: typeof ValidacionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +156,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calidad': {
+      id: '/calidad'
+      path: '/calidad'
+      fullPath: '/calidad'
+      preLoaderRoute: typeof CalidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/datos': {
+      id: '/datos'
+      path: '/datos'
+      fullPath: '/datos'
+      preLoaderRoute: typeof DatosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eda': {
+      id: '/eda'
+      path: '/eda'
+      fullPath: '/eda'
+      preLoaderRoute: typeof EdaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historial': {
+      id: '/historial'
+      path: '/historial'
+      fullPath: '/historial'
+      preLoaderRoute: typeof HistorialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/informes': {
+      id: '/informes'
+      path: '/informes'
+      fullPath: '/informes'
+      preLoaderRoute: typeof InformesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/limpieza': {
+      id: '/limpieza'
+      path: '/limpieza'
+      fullPath: '/limpieza'
+      preLoaderRoute: typeof LimpiezaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ml': {
+      id: '/ml'
+      path: '/ml'
+      fullPath: '/ml'
+      preLoaderRoute: typeof MlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/validacion': {
+      id: '/validacion'
+      path: '/validacion'
+      fullPath: '/validacion'
+      preLoaderRoute: typeof ValidacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalidadRoute: CalidadRoute,
+  DatosRoute: DatosRoute,
+  EdaRoute: EdaRoute,
+  HistorialRoute: HistorialRoute,
+  InformesRoute: InformesRoute,
+  LimpiezaRoute: LimpiezaRoute,
+  MlRoute: MlRoute,
+  ValidacionRoute: ValidacionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
