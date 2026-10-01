@@ -101,7 +101,7 @@ function EdaPage() {
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-accent"
-                    style={{ width: `${(counts[t] / total) * 100}%` }}
+                    style={{ width: `${((counts[t] ?? 0) / total) * 100}%` }}
                   />
                 </div>
               </div>
