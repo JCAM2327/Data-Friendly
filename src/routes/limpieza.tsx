@@ -55,7 +55,7 @@ function LimpiezaPage() {
     );
   }
 
-  const pending = dataset.issues.filter((i) => i.severity !== "ok");
+  const pending = dataset.issues.filter(() => true);
 
   return (
     <>
@@ -116,8 +116,8 @@ function LimpiezaPage() {
                       {formatNumber(issue.affectedRows)} fila(s) afectada(s)
                     </p>
                   </div>
-                  <StatusBadge tone={issue.severity === "critico" ? "danger" : "warning"}>
-                    {issue.severity === "critico" ? "Crítico" : "Aviso"}
+                  <StatusBadge tone={issue.severity === "critica" ? "danger" : "warning"}>
+                    {issue.severity === "critica" ? "Crítico" : "Aviso"}
                   </StatusBadge>
                 </div>
                 <p className="mt-2 rounded-lg bg-primary/8 px-2.5 py-1.5 text-[11px] text-muted-foreground ring-1 ring-primary/12">

@@ -18,11 +18,10 @@ export function computeQualityScore(input: {
 }
 
 export function countBySeverity(issues: QualityIssue[]) {
-  return {
-    ok: issues.filter((i) => i.severity === "ok").length,
-    aviso: issues.filter((i) => i.severity === "aviso").length,
-    critico: issues.filter((i) => i.severity === "critico").length,
-  };
+  const n = (s: QualityIssue["severity"]) => issues.filter((i) => i.severity === s).length;
+  const critica = n("critica"), alta = n("alta"), media = n("media"), baja = n("baja");
+  /** critico/aviso/ok: agregados para vistas resumidas. */
+  return { critica, alta, media, baja, critico: critica + alta, aviso: media + baja, ok: 0 };
 }
 
 /** Dataset de demostración. Nunca debe presentarse como un análisis real. */
@@ -32,7 +31,7 @@ export function createDemoDataset(): DatasetSummary {
       id: "nulls-fecha",
       title: "Valores nulos en fecha_compra",
       detail: "4.1% de registros afectados",
-      severity: "aviso",
+      severity: "media",
       column: "fecha_compra",
       affectedRows: 512,
       suggestedFix: "Imputar con la mediana temporal por cliente",
@@ -41,17 +40,10 @@ export function createDemoDataset(): DatasetSummary {
       id: "dup-transaccion",
       title: "213 filas duplicadas",
       detail: "Clave: id_transaccion",
-      severity: "critico",
+      severity: "critica",
       column: "id_transaccion",
       affectedRows: 213,
       suggestedFix: "Eliminar duplicados conservando el registro más reciente",
-    },
-    {
-      id: "tipos",
-      title: "Tipos de dato consistentes",
-      detail: "34/34 columnas válidas",
-      severity: "ok",
-      affectedRows: 0,
     },
   ];
 

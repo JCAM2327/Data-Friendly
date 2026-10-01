@@ -1,6 +1,6 @@
 /** Dominio de la aplicación. Compartido por UI, lógica y servicios de IA/ML. */
 
-export type QualitySeverity = "ok" | "aviso" | "critico";
+export type QualitySeverity = "critica" | "alta" | "media" | "baja";
 
 export type DatasetStatus =
   | "sin_cargar"
@@ -11,12 +11,28 @@ export type DatasetStatus =
 
 export type ColumnType = "numerica" | "categorica" | "fecha" | "texto" | "booleana";
 
+export interface CategoryCount {
+  value: string;
+  count: number;
+}
+
 export interface ColumnProfile {
   name: string;
   type: ColumnType;
   missingPct: number;
   uniqueCount: number;
   sample: string;
+  /** Valores no nulos. */
+  count?: number;
+  nullCount?: number;
+  firstValues?: string[];
+  min?: string;
+  max?: string;
+  mean?: number;
+  median?: number;
+  std?: number;
+  mode?: string;
+  topCategories?: CategoryCount[];
 }
 
 export interface QualityIssue {
@@ -26,7 +42,7 @@ export interface QualityIssue {
   severity: QualitySeverity;
   column?: string;
   affectedRows: number;
-  /** Corrección propuesta por el motor de limpieza. */
+  /** Corrección propuesta. Nunca se aplica automáticamente. */
   suggestedFix?: string;
 }
 
@@ -35,6 +51,7 @@ export interface DatasetSummary {
   name: string;
   source: string;
   sizeLabel: string;
+  sheetName?: string;
   rows: number;
   columns: number;
   missingPct: number;
