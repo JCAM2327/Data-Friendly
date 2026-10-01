@@ -54,9 +54,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
             rows: prev.rows - prev.duplicates,
             qualityScore: 94,
             status: "limpiado",
-            issues: prev.issues.map((i) =>
-              i.severity === "ok" ? i : { ...i, severity: "ok", detail: "Resuelto por la limpieza" },
-            ),
+            issues: [],
           }
         : prev,
     );

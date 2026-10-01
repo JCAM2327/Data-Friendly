@@ -143,9 +143,9 @@ function DashboardPage() {
             >
               <span
                 className={`size-2 shrink-0 rounded-full ${
-                  issue.severity === "critico"
+                  issue.severity === "critica"
                     ? "bg-danger"
-                    : issue.severity === "aviso"
+                    : issue.severity !== "critica"
                       ? "bg-warning"
                       : "bg-success"
                 }`}
@@ -156,14 +156,14 @@ function DashboardPage() {
               </div>
               <StatusBadge
                 tone={
-                  issue.severity === "critico"
+                  issue.severity === "critica"
                     ? "danger"
-                    : issue.severity === "aviso"
+                    : issue.severity !== "critica"
                       ? "warning"
                       : "success"
                 }
               >
-                {issue.severity === "critico" ? "Revisar" : issue.severity === "aviso" ? "Corregible" : "OK"}
+                {issue.severity === "critica" ? "Revisar" : issue.severity !== "critica" ? "Corregible" : "OK"}
               </StatusBadge>
             </li>
           ))}

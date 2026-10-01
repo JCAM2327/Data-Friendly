@@ -69,7 +69,7 @@ function ValidacionPage() {
     {
       id: "tipos",
       label: "Tipos de dato consistentes",
-      ok: dataset.issues.every((i) => i.id !== "tipos" || i.severity === "ok"),
+      ok: !dataset.issues.some((i) => i.id.startsWith("tipo-")),
       detail: "Comprobación estructural",
     },
     {
