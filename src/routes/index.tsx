@@ -145,7 +145,7 @@ function DashboardPage() {
                 className={`size-2 shrink-0 rounded-full ${
                   issue.severity === "critica"
                     ? "bg-danger"
-                    : issue.severity !== "critica"
+                    : issue.severity !== "baja"
                       ? "bg-warning"
                       : "bg-success"
                 }`}
@@ -158,12 +158,12 @@ function DashboardPage() {
                 tone={
                   issue.severity === "critica"
                     ? "danger"
-                    : issue.severity !== "critica"
+                    : issue.severity !== "baja"
                       ? "warning"
                       : "success"
                 }
               >
-                {issue.severity === "critica" ? "Revisar" : issue.severity !== "critica" ? "Corregible" : "OK"}
+                {issue.severity === "critica" ? "Revisar" : issue.severity !== "baja" ? "Corregible" : "OK"}
               </StatusBadge>
             </li>
           ))}

@@ -23,16 +23,16 @@ export interface ColumnProfile {
   uniqueCount: number;
   sample: string;
   /** Valores no nulos. */
-  count?: number;
-  nullCount?: number;
-  firstValues?: string[];
-  min?: string;
-  max?: string;
-  mean?: number;
-  median?: number;
-  std?: number;
-  mode?: string;
-  topCategories?: CategoryCount[];
+  count?: number | undefined;
+  nullCount?: number | undefined;
+  firstValues?: string[] | undefined;
+  min?: string | undefined;
+  max?: string | undefined;
+  mean?: number | undefined;
+  median?: number | undefined;
+  std?: number | undefined;
+  mode?: string | undefined;
+  topCategories?: CategoryCount[] | undefined;
 }
 
 export interface QualityIssue {
@@ -40,10 +40,10 @@ export interface QualityIssue {
   title: string;
   detail: string;
   severity: QualitySeverity;
-  column?: string;
+  column?: string | undefined;
   affectedRows: number;
   /** Corrección propuesta. Nunca se aplica automáticamente. */
-  suggestedFix?: string;
+  suggestedFix?: string | undefined;
 }
 
 export interface DatasetSummary {
@@ -51,7 +51,7 @@ export interface DatasetSummary {
   name: string;
   source: string;
   sizeLabel: string;
-  sheetName?: string;
+  sheetName?: string | undefined;
   rows: number;
   columns: number;
   missingPct: number;
