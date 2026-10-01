@@ -103,7 +103,7 @@ function CalidadPage() {
         <ul className="mt-3 space-y-2">
           {[...dataset.issues]
             .sort((a, b) => {
-              const order = { critico: 0, aviso: 1, ok: 2 } as const;
+              const order = { critica: 0, alta: 1, media: 2, baja: 3 } as const;
               return order[a.severity] - order[b.severity];
             })
             .map((issue) => (
@@ -115,18 +115,18 @@ function CalidadPage() {
                   </div>
                   <StatusBadge
                     tone={
-                      issue.severity === "critico"
+                      issue.severity === "critica"
                         ? "danger"
-                        : issue.severity === "aviso"
+                        : issue.severity !== "baja"
                           ? "warning"
                           : "success"
                     }
                   >
-                    {issue.severity === "critico"
+                    {issue.severity === "critica"
                       ? "Crítico"
-                      : issue.severity === "aviso"
-                        ? "Aviso"
-                        : "OK"}
+                      : issue.severity !== "baja"
+                        ? "Media"
+                        : "Baja"}
                   </StatusBadge>
                 </div>
                 {issue.suggestedFix ? (
