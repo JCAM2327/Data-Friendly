@@ -73,6 +73,7 @@ export function createDemoDataset(): DatasetSummary {
     status: "diagnosticado",
     loadedAt: new Date().toISOString(),
     isDemo: true,
+    issues,
     columnProfiles: [
       { name: "id_transaccion", type: "texto", missingPct: 0, uniqueCount: 12267, sample: "TRX-1042" },
       { name: "cliente", type: "categorica", missingPct: 0.4, uniqueCount: 3108, sample: "a.rivera" },

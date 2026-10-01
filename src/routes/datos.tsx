@@ -37,7 +37,7 @@ function DatosPage() {
 
   const previewColumns: Column<PreviewRow>[] =
     dataset && dataset.preview.length > 0
-      ? Object.keys(dataset.preview[0]).map((key) => ({ key, header: key }))
+      ? Object.keys(dataset.preview[0] ?? {}).map((key) => ({ key, header: key }))
       : [];
 
   return (
