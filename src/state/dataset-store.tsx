@@ -7,6 +7,7 @@ interface DatasetContextValue {
   history: OperationRecord[];
   lastOperation: OperationRecord | null;
   loadDemoDataset: () => void;
+  loadDataset: (summary: DatasetSummary) => void;
   clearDataset: () => void;
   registerOperation: (op: Omit<OperationRecord, "id" | "at">) => void;
   applyCleaning: () => void;
@@ -34,6 +35,23 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       detail: `${demo.name} · ${demo.rows} filas`,
     });
   }, [registerOperation]);
+
+  const loadDataset = useCallback(
+    (summary: DatasetSummary) => {
+      setDataset(summary);
+      registerOperation({
+        kind: "carga",
+        label: "Dataset cargado",
+        detail: `${summary.name}${summary.sheetName ? ` (${summary.sheetName})` : ""} · ${summary.rows} filas`,
+      });
+      registerOperation({
+        kind: "diagnostico",
+        label: "Diagnóstico automático",
+        detail: `${summary.issues.length} problema(s) · score ${summary.qualityScore}`,
+      });
+    },
+    [registerOperation],
+  );
 
   const clearDataset = useCallback(() => {
     setDataset(null);
@@ -71,11 +89,12 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       history,
       lastOperation: history[0] ?? null,
       loadDemoDataset,
+      loadDataset,
       clearDataset,
       registerOperation,
       applyCleaning,
     }),
-    [dataset, history, loadDemoDataset, clearDataset, registerOperation, applyCleaning],
+    [dataset, history, loadDemoDataset, loadDataset, clearDataset, registerOperation, applyCleaning],
   );
 
   return <DatasetContext.Provider value={value}>{children}</DatasetContext.Provider>;
