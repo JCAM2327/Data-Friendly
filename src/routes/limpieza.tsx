@@ -31,7 +31,7 @@ export const Route = createFileRoute("/limpieza")({
 });
 
 function LimpiezaPage() {
-  const { dataset, loadDemoDataset, applyCleaning } = useDataset();
+  const { dataset, loadDemoDataset, applyCleaning, plannedIssueIds } = useDataset();
 
   if (!dataset) {
     return (
