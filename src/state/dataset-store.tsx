@@ -7,6 +7,10 @@ interface DatasetContextValue {
   history: OperationRecord[];
   lastOperation: OperationRecord | null;
   loadDemoDataset: () => void;
+  loadDataset: (summary: DatasetSummary) => void;
+  /** Problemas que el usuario eligió corregir. No se aplica nada automáticamente. */
+  plannedIssueIds: string[];
+  togglePlanned: (id: string) => void;
   clearDataset: () => void;
   registerOperation: (op: Omit<OperationRecord, "id" | "at">) => void;
   applyCleaning: () => void;
@@ -16,6 +20,11 @@ const DatasetContext = createContext<DatasetContextValue | null>(null);
 
 export function DatasetProvider({ children }: { children: ReactNode }) {
   const [dataset, setDataset] = useState<DatasetSummary | null>(null);
+  const [plannedIssueIds, setPlanned] = useState<string[]>([]);
+  const togglePlanned = useCallback(
+    (id: string) => setPlanned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id])),
+    [],
+  );
   const [history, setHistory] = useState<OperationRecord[]>([]);
 
   const registerOperation = useCallback((op: Omit<OperationRecord, "id" | "at">) => {
@@ -34,6 +43,24 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       detail: `${demo.name} · ${demo.rows} filas`,
     });
   }, [registerOperation]);
+
+  const loadDataset = useCallback(
+    (summary: DatasetSummary) => {
+      setDataset(summary);
+      setPlanned([]);
+      registerOperation({
+        kind: "carga",
+        label: "Dataset cargado",
+        detail: `${summary.name}${summary.sheetName ? ` (${summary.sheetName})` : ""} · ${summary.rows} filas`,
+      });
+      registerOperation({
+        kind: "diagnostico",
+        label: "Diagnóstico automático",
+        detail: `${summary.issues.length} problema(s) · score ${summary.qualityScore}`,
+      });
+    },
+    [registerOperation],
+  );
 
   const clearDataset = useCallback(() => {
     setDataset(null);
@@ -71,11 +98,14 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       history,
       lastOperation: history[0] ?? null,
       loadDemoDataset,
+      loadDataset,
+      plannedIssueIds,
+      togglePlanned,
       clearDataset,
       registerOperation,
       applyCleaning,
     }),
-    [dataset, history, loadDemoDataset, clearDataset, registerOperation, applyCleaning],
+    [dataset, history, loadDemoDataset, loadDataset, plannedIssueIds, togglePlanned, clearDataset, registerOperation, applyCleaning],
   );
 
   return <DatasetContext.Provider value={value}>{children}</DatasetContext.Provider>;

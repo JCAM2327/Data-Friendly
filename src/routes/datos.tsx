@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Database, Upload, Plug, FileSpreadsheet, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Plug, Trash2, ShieldCheck } from "lucide-react";
+import { FileUploader } from "@/components/data/FileUploader";
+import { ColumnPreviewTable } from "@/components/data/ColumnPreviewTable";
 import { Button } from "@/components/ui/button";
 import { GlassCard, CardHeading } from "@/components/common/GlassCard";
 import { PageHeader } from "@/components/common/PageHeader";
-import { EmptyState } from "@/components/common/EmptyState";
 import { DemoNotice } from "@/components/common/DemoNotice";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { DataTable, type Column } from "@/components/common/DataTable";
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/datos")({
 type PreviewRow = Record<string, string>;
 
 function DatosPage() {
-  const { dataset, loadDemoDataset, clearDataset } = useDataset();
+  const { dataset, loadDemoDataset, loadDataset, clearDataset } = useDataset();
 
   const previewColumns: Column<PreviewRow>[] =
     dataset && dataset.preview.length > 0
@@ -66,50 +67,26 @@ function DatosPage() {
 
       <GlassCard>
         <CardHeading
-          title="Origen de los datos"
-          meta="La ingesta real se conectará en la siguiente fase"
-        />
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {[
-            { icon: Upload, label: "Subir archivo", hint: "CSV, XLSX, JSON, Parquet" },
-            { icon: Plug, label: "Conectar base de datos", hint: "PostgreSQL, MySQL, BigQuery" },
-            { icon: FileSpreadsheet, label: "Hoja de cálculo", hint: "Google Sheets, Excel online" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="glass-inset rounded-xl p-3 ring-1 ring-white/50"
-            >
-              <span className="grid size-9 place-items-center rounded-lg bg-primary/12 text-primary">
-                <s.icon className="size-4" aria-hidden />
-              </span>
-              <p className="mt-2 text-[13px] font-medium">{s.label}</p>
-              <p className="text-[11px] text-muted-foreground">{s.hint}</p>
-              <Button variant="outline" size="sm" className="mt-2 w-full" disabled>
-                Próximamente
-              </Button>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
-
-      {!dataset ? (
-        <EmptyState
-          icon={Database}
-          title="Ninguna fuente conectada"
-          description="Mientras se habilita la ingesta real puedes revisar la aplicación con un conjunto de demostración."
+          title="Cargar archivo"
+          meta="Al cargar se reemplaza el dataset activo"
           action={
-            <Button size="lg" onClick={loadDemoDataset}>
-              Ver ejemplo de demostración
+            <Button variant="ghost" size="sm" onClick={loadDemoDataset}>
+              Usar demostración
             </Button>
           }
         />
-      ) : (
+        <div className="mt-3">
+          <FileUploader onAnalyzed={loadDataset} />
+        </div>
+      </GlassCard>
+
+      {dataset ? (
         <>
           {dataset.isDemo ? <DemoNotice /> : null}
 
           <GlassCard>
             <CardHeading
-              title={dataset.name}
+              title={dataset.sheetName ? `${dataset.name} · ${dataset.sheetName}` : dataset.name}
               meta={`${dataset.source} · ${dataset.sizeLabel} · ${formatDateTime(dataset.loadedAt)}`}
               action={
                 <StatusBadge tone="info">
@@ -124,15 +101,33 @@ function DatosPage() {
               Vista previa de las primeras filas.
             </p>
           </GlassCard>
+
+          <GlassCard>
+            <CardHeading
+              title="Columnas detectadas"
+              meta={`${dataset.columnProfiles.length} columnas · ${dataset.issues.length} problema(s) detectado(s)`}
+              action={
+                <Button asChild size="sm">
+                  <Link to="/calidad">
+                    <ShieldCheck className="size-4" aria-hidden />
+                    Ver diagnóstico
+                  </Link>
+                </Button>
+              }
+            />
+            <div className="mt-3">
+              <ColumnPreviewTable profiles={dataset.columnProfiles} />
+            </div>
+          </GlassCard>
         </>
-      )}
+      ) : null}
 
       <ModuleStub
         icon={Plug}
-        title="Ingesta prevista"
+        title="Próximas fuentes"
         items={[
-          "Detección automática de separador y codificación",
-          "Inferencia de tipos por columna",
+          "Conexión a bases de datos y hojas en línea",
+          "Procesamiento en segundo plano para archivos muy grandes",
           "Carga por lotes para archivos grandes",
           "Credenciales seguras para bases de datos remotas",
         ]}

@@ -179,7 +179,7 @@ function missingSeverity(pct: number): QualitySeverity | null {
 
 export function profileTable(
   table: RawTable,
-  meta: { name: string; source: string; sizeLabel: string; sheetName?: string },
+  meta: { name: string; source: string; sizeLabel: string; sheetName?: string | undefined },
 ): DatasetSummary {
   const { headers, rows } = table;
   const nRows = rows.length;
