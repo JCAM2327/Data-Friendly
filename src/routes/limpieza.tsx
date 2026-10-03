@@ -8,6 +8,7 @@ import { DemoNotice } from "@/components/common/DemoNotice";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ModuleStub } from "@/components/common/ModuleStub";
+import { severityLabel, severityTone } from "@/lib/severity";
 import { useDataset } from "@/state/dataset-store";
 import { formatNumber, formatPct } from "@/lib/format";
 
@@ -55,7 +56,9 @@ function LimpiezaPage() {
     );
   }
 
-  const pending = dataset.issues.filter(() => true);
+  const pending = plannedIssueIds.length
+    ? dataset.issues.filter((i) => plannedIssueIds.includes(i.id))
+    : dataset.issues;
 
   return (
     <>
@@ -98,7 +101,7 @@ function LimpiezaPage() {
       <GlassCard>
         <CardHeading
           title="Correcciones propuestas"
-          meta={`${pending.length} pendiente(s)`}
+          meta={plannedIssueIds.length ? `${pending.length} seleccionada(s) en Calidad` : `${pending.length} pendiente(s) · selecciona en Calidad cuáles aplicar`}
         />
         <ul className="mt-3 space-y-2">
           {pending.length === 0 ? (
@@ -116,8 +119,8 @@ function LimpiezaPage() {
                       {formatNumber(issue.affectedRows)} fila(s) afectada(s)
                     </p>
                   </div>
-                  <StatusBadge tone={issue.severity === "critica" ? "danger" : "warning"}>
-                    {issue.severity === "critica" ? "Crítico" : "Aviso"}
+                  <StatusBadge tone={severityTone[issue.severity]}>
+                    {severityLabel[issue.severity]}
                   </StatusBadge>
                 </div>
                 <p className="mt-2 rounded-lg bg-primary/8 px-2.5 py-1.5 text-[11px] text-muted-foreground ring-1 ring-primary/12">
