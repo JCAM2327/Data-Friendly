@@ -1,12 +1,11 @@
 import { useRef, useState } from "react";
 import { Upload, FileSpreadsheet, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ACCEPTED_EXTENSIONS, formatBytes, loadFile, type LoadedFile } from "@/services/file-parser";
-import { profileTable } from "@/services/profiling-service";
-import type { DatasetSummary } from "@/lib/types";
+import { ACCEPTED_EXTENSIONS, formatBytes, loadFile, type LoadedFile, type RawTable } from "@/services/file-parser";
+import type { TableMeta } from "@/state/dataset-store";
 
 /** Carga un archivo, permite elegir hoja (Excel) y entrega el diagnóstico. */
-export function FileUploader({ onAnalyzed }: { onAnalyzed: (summary: DatasetSummary) => void }) {
+export function FileUploader({ onLoaded }: { onLoaded: (table: RawTable, meta: TableMeta) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [loaded, setLoaded] = useState<LoadedFile | null>(null);
@@ -25,14 +24,12 @@ export function FileUploader({ onAnalyzed }: { onAnalyzed: (summary: DatasetSumm
         if (table.headers.length === 0 || table.rows.length === 0) {
           throw new Error("No se encontraron filas con datos.");
         }
-        onAnalyzed(
-          profileTable(table, {
-            name: f.name,
-            source: `Archivo ${lf.format.toUpperCase()}`,
-            sizeLabel: formatBytes(f.size),
-            sheetName,
-          }),
-        );
+        onLoaded(table, {
+          name: f.name,
+          source: `Archivo ${lf.format.toUpperCase()}`,
+          sizeLabel: formatBytes(f.size),
+          sheetName,
+        });
         setFile(null);
         setLoaded(null);
       } catch (e) {

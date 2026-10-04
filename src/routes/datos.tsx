@@ -76,7 +76,7 @@ function DatosPage() {
           }
         />
         <div className="mt-3">
-          <FileUploader onAnalyzed={loadDataset} />
+          <FileUploader onLoaded={loadDataset} />
         </div>
       </GlassCard>
 

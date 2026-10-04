@@ -1,31 +1,65 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { DatasetSummary, OperationRecord } from "@/lib/types";
-import { createDemoDataset } from "@/services/dataset-service";
+import type { RawTable } from "@/services/file-parser";
+import { createDemoTable } from "@/services/dataset-service";
+import { profileTable } from "@/services/profiling-service";
+
+export interface TableMeta {
+  name: string;
+  source: string;
+  sizeLabel: string;
+  sheetName?: string | undefined;
+  isDemo?: boolean | undefined;
+}
+
+/** Transformación confirmada. Guarda la tabla resultante para poder deshacer. */
+export interface CleaningStep {
+  id: string;
+  at: string;
+  operation: string;
+  column: string;
+  method: string;
+  affected: number;
+  result: string;
+  table: RawTable;
+}
+
+export type NewStep = Omit<CleaningStep, "id" | "at">;
 
 interface DatasetContextValue {
+  /** Perfil del dataset de trabajo (limpio si hay transformaciones). */
   dataset: DatasetSummary | null;
+  /** Perfil del dataset original, que nunca se modifica. */
+  originalDataset: DatasetSummary | null;
+  /** Tabla de trabajo actual. */
+  currentTable: RawTable | null;
+  steps: CleaningStep[];
   history: OperationRecord[];
   lastOperation: OperationRecord | null;
   loadDemoDataset: () => void;
-  loadDataset: (summary: DatasetSummary) => void;
-  /** Problemas que el usuario eligió corregir. No se aplica nada automáticamente. */
-  plannedIssueIds: string[];
-  togglePlanned: (id: string) => void;
+  loadDataset: (table: RawTable, meta: TableMeta) => void;
   clearDataset: () => void;
   registerOperation: (op: Omit<OperationRecord, "id" | "at">) => void;
-  applyCleaning: () => void;
+  applyStep: (step: NewStep) => void;
+  undoLastStep: () => void;
+  profile: (table: RawTable) => DatasetSummary | null;
+  /** Problemas que el usuario eligió corregir. */
+  plannedIssueIds: string[];
+  togglePlanned: (id: string) => void;
 }
 
 const DatasetContext = createContext<DatasetContextValue | null>(null);
 
 export function DatasetProvider({ children }: { children: ReactNode }) {
-  const [dataset, setDataset] = useState<DatasetSummary | null>(null);
+  const [original, setOriginal] = useState<{ table: RawTable; meta: TableMeta } | null>(null);
+  const [steps, setSteps] = useState<CleaningStep[]>([]);
+  const [history, setHistory] = useState<OperationRecord[]>([]);
   const [plannedIssueIds, setPlanned] = useState<string[]>([]);
+
   const togglePlanned = useCallback(
     (id: string) => setPlanned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id])),
     [],
   );
-  const [history, setHistory] = useState<OperationRecord[]>([]);
 
   const registerOperation = useCallback((op: Omit<OperationRecord, "id" | "at">) => {
     setHistory((prev) => [
@@ -34,78 +68,103 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
-  const loadDemoDataset = useCallback(() => {
-    const demo = createDemoDataset();
-    setDataset(demo);
-    registerOperation({
-      kind: "carga",
-      label: "Dataset de demostración cargado",
-      detail: `${demo.name} · ${demo.rows} filas`,
-    });
-  }, [registerOperation]);
+  const meta = original?.meta;
+  const profile = useCallback(
+    (table: RawTable) => (meta ? profileTable(table, meta) : null),
+    [meta],
+  );
+
+  const originalDataset = useMemo(
+    () => (original ? profileTable(original.table, original.meta) : null),
+    [original],
+  );
+  const currentTable = steps.length ? steps[steps.length - 1]!.table : (original?.table ?? null);
+  const dataset = useMemo(() => {
+    if (!original || !currentTable) return null;
+    if (!steps.length) return originalDataset;
+    return { ...profileTable(currentTable, original.meta), status: "limpiado" as const };
+  }, [original, currentTable, steps.length, originalDataset]);
 
   const loadDataset = useCallback(
-    (summary: DatasetSummary) => {
-      setDataset(summary);
+    (table: RawTable, m: TableMeta) => {
+      setOriginal({ table, meta: m });
+      setSteps([]);
       setPlanned([]);
+      const s = profileTable(table, m);
       registerOperation({
         kind: "carga",
-        label: "Dataset cargado",
-        detail: `${summary.name}${summary.sheetName ? ` (${summary.sheetName})` : ""} · ${summary.rows} filas`,
+        label: m.isDemo ? "Dataset de demostración cargado" : "Dataset cargado",
+        detail: `${m.name}${m.sheetName ? ` (${m.sheetName})` : ""} · ${s.rows} filas`,
       });
       registerOperation({
         kind: "diagnostico",
         label: "Diagnóstico automático",
-        detail: `${summary.issues.length} problema(s) · score ${summary.qualityScore}`,
+        detail: `${s.issues.length} problema(s) · score ${s.qualityScore}`,
       });
     },
     [registerOperation],
   );
 
-  const clearDataset = useCallback(() => {
-    setDataset(null);
-    registerOperation({
-      kind: "carga",
-      label: "Dataset descartado",
-      detail: "Se limpió la sesión de trabajo",
+  const loadDemoDataset = useCallback(() => {
+    loadDataset(createDemoTable(), {
+      name: "ventas_demo.csv",
+      source: "Demostración",
+      sizeLabel: "generado",
+      isDemo: true,
     });
+  }, [loadDataset]);
+
+  const clearDataset = useCallback(() => {
+    setOriginal(null);
+    setSteps([]);
+    registerOperation({ kind: "carga", label: "Dataset descartado", detail: "Se limpió la sesión de trabajo" });
   }, [registerOperation]);
 
-  const applyCleaning = useCallback(() => {
-    setDataset((prev) =>
-      prev
-        ? {
-            ...prev,
-            duplicates: 0,
-            missingPct: 0,
-            rows: prev.rows - prev.duplicates,
-            qualityScore: 94,
-            status: "limpiado",
-            issues: [],
-          }
-        : prev,
-    );
-    registerOperation({
-      kind: "limpieza",
-      label: "Limpieza controlada ejecutada",
-      detail: "Imputación + deduplicación aplicada",
+  const applyStep = useCallback(
+    (step: NewStep) => {
+      setSteps((prev) => [...prev, { ...step, id: `${Date.now()}`, at: new Date().toISOString() }]);
+      registerOperation({
+        kind: "limpieza",
+        label: `${step.operation}${step.column ? ` · ${step.column}` : ""}`,
+        detail: `${step.method} · ${step.affected} registro(s) · ${step.result}`,
+      });
+    },
+    [registerOperation],
+  );
+
+  const undoLastStep = useCallback(() => {
+    setSteps((prev) => {
+      const last = prev[prev.length - 1];
+      if (last) {
+        registerOperation({
+          kind: "limpieza",
+          label: "Transformación deshecha",
+          detail: `${last.operation}${last.column ? ` · ${last.column}` : ""}`,
+        });
+      }
+      return prev.slice(0, -1);
     });
   }, [registerOperation]);
 
   const value = useMemo(
     () => ({
       dataset,
+      originalDataset,
+      currentTable,
+      steps,
       history,
       lastOperation: history[0] ?? null,
       loadDemoDataset,
       loadDataset,
-      plannedIssueIds,
-      togglePlanned,
       clearDataset,
       registerOperation,
-      applyCleaning,
+      applyStep,
+      undoLastStep,
+      profile,
+      plannedIssueIds,
+      togglePlanned,
     }),
-    [dataset, history, loadDemoDataset, loadDataset, plannedIssueIds, togglePlanned, clearDataset, registerOperation, applyCleaning],
+    [dataset, originalDataset, currentTable, steps, history, loadDemoDataset, loadDataset, clearDataset, registerOperation, applyStep, undoLastStep, profile, plannedIssueIds, togglePlanned],
   );
 
   return <DatasetContext.Provider value={value}>{children}</DatasetContext.Provider>;
