@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { DemoNotice } from "@/components/common/DemoNotice";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ModuleStub } from "@/components/common/ModuleStub";
 import { severityLabel, severityTone } from "@/lib/severity";
 import { useDataset } from "@/state/dataset-store";
@@ -31,7 +30,7 @@ export const Route = createFileRoute("/limpieza")({
 });
 
 function LimpiezaPage() {
-  const { dataset, loadDemoDataset, applyCleaning, plannedIssueIds } = useDataset();
+  const { dataset, loadDemoDataset, plannedIssueIds } = useDataset();
 
   if (!dataset) {
     return (
@@ -66,25 +65,9 @@ function LimpiezaPage() {
         title="Limpieza"
         description="Revisa cada corrección antes de aplicarla."
         action={
-          pending.length > 0 ? (
-            <ConfirmDialog
-              trigger={
-                <Button size="sm">
-                  <Sparkles className="size-4" aria-hidden />
-                  Aplicar limpieza
-                </Button>
-              }
-              title="¿Aplicar la limpieza propuesta?"
-              description="Se modificarán los datos de la sesión: imputación de faltantes y eliminación de duplicados. Esta operación no se puede deshacer."
-              confirmLabel="Aplicar"
-              destructive
-              onConfirm={applyCleaning}
-            />
-          ) : (
-            <StatusBadge tone="success" dot>
-              Sin correcciones pendientes
-            </StatusBadge>
-          )
+          <StatusBadge tone="info" dot>
+            {pending.length} corrección(es) pendiente(s)
+          </StatusBadge>
         }
       />
 
