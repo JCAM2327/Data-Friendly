@@ -27,15 +27,15 @@ export function DuplicatesPanel({ table, onPreview }: PanelProps) {
       header: "",
       render: (r) => (
         <Checkbox
-          checked={selected.includes(r.__i as number)}
+          checked={selected.includes(r["__i"] as number)}
           onCheckedChange={() =>
-            setSelected((s) => (s.includes(r.__i as number) ? s.filter((x) => x !== r.__i) : [...s, r.__i as number]))
+            setSelected((s) => (s.includes(r["__i"] as number) ? s.filter((x) => x !== r["__i"]) : [...s, r["__i"] as number]))
           }
-          aria-label={`Seleccionar fila ${(r.__i as number) + 1}`}
+          aria-label={`Seleccionar fila ${(r["__i"] as number) + 1}`}
         />
       ),
     },
-    { key: "__i", header: "Fila", render: (r) => (r.__i as number) + 1 },
+    { key: "__i", header: "Fila", render: (r) => (r["__i"] as number) + 1 },
     ...table.headers.slice(0, 6).map((h) => ({ key: h, header: h })),
   ];
 
