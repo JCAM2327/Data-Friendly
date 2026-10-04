@@ -15,7 +15,7 @@ export function isNullish(v: unknown): boolean {
   return false;
 }
 
-function toNumber(v: unknown): number | null {
+export function toNumber(v: unknown): number | null {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
   if (typeof v !== "string") return null;
   let s = v.trim();
@@ -27,14 +27,14 @@ function toNumber(v: unknown): number | null {
 }
 
 /** Número "sucio": con símbolos de moneda, % o espacios. */
-function toLooseNumber(v: unknown): number | null {
+export function toLooseNumber(v: unknown): number | null {
   if (typeof v !== "string") return toNumber(v);
   return toNumber(v.replace(/[€$£%\s]/g, ""));
 }
 
 const DATE_RE = /^(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})([ T]\d{1,2}:\d{2}(:\d{2})?)?/;
 
-function toDate(v: unknown): Date | null {
+export function toDate(v: unknown): Date | null {
   if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
   if (typeof v !== "string" || !DATE_RE.test(v.trim())) return null;
   const s = v.trim();
@@ -179,7 +179,7 @@ function missingSeverity(pct: number): QualitySeverity | null {
 
 export function profileTable(
   table: RawTable,
-  meta: { name: string; source: string; sizeLabel: string; sheetName?: string | undefined },
+  meta: { name: string; source: string; sizeLabel: string; sheetName?: string | undefined; isDemo?: boolean | undefined },
 ): DatasetSummary {
   const { headers, rows } = table;
   const nRows = rows.length;
@@ -419,7 +419,7 @@ export function profileTable(
     qualityScore: scoreFromIssues(issues, missingPct, nRows ? (duplicates / nRows) * 100 : 0),
     status: "diagnosticado",
     loadedAt: new Date().toISOString(),
-    isDemo: false,
+    isDemo: meta.isDemo ?? false,
     columnProfiles: analyses.map((a) => a.profile),
     issues,
     preview: rows.slice(0, 10).map((r) => Object.fromEntries(headers.map((h) => [h, displayValue(r[h])]))),

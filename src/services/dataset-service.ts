@@ -1,21 +1,10 @@
 /**
- * Lógica de procesamiento de datos.
- * Aquí vivirá la ingesta y el perfilado real. De momento sólo expone
- * funciones puras y un dataset de DEMOSTRACIÓN explícitamente marcado.
+ * Utilidades de dataset y generador del set de DEMOSTRACIÓN.
+ * El set demo es una tabla real (generada) que pasa por el mismo
+ * perfilado que cualquier archivo; siempre se marca como demostración.
  */
-import type { DatasetSummary, QualityIssue } from "@/lib/types";
-
-/** Puntuación de calidad a partir de métricas de perfilado. */
-export function computeQualityScore(input: {
-  missingPct: number;
-  duplicates: number;
-  rows: number;
-  criticalIssues: number;
-}): number {
-  const duplicatePct = input.rows > 0 ? (input.duplicates / input.rows) * 100 : 0;
-  const raw = 100 - input.missingPct * 2 - duplicatePct * 1.5 - input.criticalIssues * 4;
-  return Math.max(0, Math.min(100, Math.round(raw)));
-}
+import type { QualityIssue } from "@/lib/types";
+import type { RawTable } from "./file-parser";
 
 export function countBySeverity(issues: QualityIssue[]) {
   const n = (s: QualityIssue["severity"]) => issues.filter((i) => i.severity === s).length;
@@ -24,62 +13,47 @@ export function countBySeverity(issues: QualityIssue[]) {
   return { critica, alta, media, baja, critico: critica + alta, aviso: media + baja, ok: 0 };
 }
 
-/** Dataset de demostración. Nunca debe presentarse como un análisis real. */
-export function createDemoDataset(): DatasetSummary {
-  const issues: QualityIssue[] = [
-    {
-      id: "nulls-fecha",
-      title: "Valores nulos en fecha_compra",
-      detail: "4.1% de registros afectados",
-      severity: "media",
-      column: "fecha_compra",
-      affectedRows: 512,
-      suggestedFix: "Imputar con la mediana temporal por cliente",
-    },
-    {
-      id: "dup-transaccion",
-      title: "213 filas duplicadas",
-      detail: "Clave: id_transaccion",
-      severity: "critica",
-      column: "id_transaccion",
-      affectedRows: 213,
-      suggestedFix: "Eliminar duplicados conservando el registro más reciente",
-    },
-  ];
-
-  return {
-    id: "demo-ventas-2024",
-    name: "ventas_2024.csv",
-    source: "Archivo local (demo)",
-    sizeLabel: "3.2 MB",
-    rows: 12480,
-    columns: 34,
-    missingPct: 6.2,
-    duplicates: 213,
-    qualityScore: computeQualityScore({
-      missingPct: 6.2,
-      duplicates: 213,
-      rows: 12480,
-      criticalIssues: 1,
-    }),
-    status: "diagnosticado",
-    loadedAt: new Date().toISOString(),
-    isDemo: true,
-    issues,
-    columnProfiles: [
-      { name: "id_transaccion", type: "texto", missingPct: 0, uniqueCount: 12267, sample: "TRX-1042" },
-      { name: "cliente", type: "categorica", missingPct: 0.4, uniqueCount: 3108, sample: "a.rivera" },
-      { name: "fecha_compra", type: "fecha", missingPct: 4.1, uniqueCount: 274, sample: "2024-03-11" },
-      { name: "importe", type: "numerica", missingPct: 1.2, uniqueCount: 8921, sample: "48.20" },
-      { name: "canal", type: "categorica", missingPct: 0, uniqueCount: 4, sample: "web" },
-      { name: "devuelto", type: "booleana", missingPct: 0, uniqueCount: 2, sample: "false" },
-    ],
-    preview: [
-      { id_transaccion: "TRX-1042", cliente: "a.rivera", fecha_compra: "2024-03-11", importe: "48.20", estado: "ok" },
-      { id_transaccion: "TRX-1043", cliente: "m.torres", fecha_compra: "—", importe: "112.00", estado: "nulo" },
-      { id_transaccion: "TRX-1044", cliente: "a.rivera", fecha_compra: "2024-03-11", importe: "48.20", estado: "dup" },
-      { id_transaccion: "TRX-1045", cliente: "j.pena", fecha_compra: "2024-03-12", importe: "9.90", estado: "ok" },
-      { id_transaccion: "TRX-1046", cliente: "l.ortega", fecha_compra: "2024-03-12", importe: "230.45", estado: "ok" },
-    ],
+/** Generador pseudoaleatorio determinista para que la demo sea reproducible. */
+function rng(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
   };
+}
+
+export function createDemoTable(): RawTable {
+  const r = rng(42);
+  const pick = <T,>(arr: T[]) => arr[Math.floor(r() * arr.length)]!;
+  const paises = ["España", "España", "España", "espana", "ESPANA", "España.", "Espna", "México", "Mexico", "Perú", "Peru", "Chile"];
+  const canales = ["web", "Web ", "tienda", "TIENDA", "app", "  app"];
+  const headers = ["id_transaccion", "cliente", "pais", "canal", "fecha_compra", "importe", "unidades", "descuento"];
+  const rows: Record<string, unknown>[] = [];
+  for (let i = 0; i < 240; i++) {
+    const d = 1 + Math.floor(r() * 28);
+    const m = 1 + Math.floor(r() * 12);
+    const fmt = r();
+    const fecha =
+      fmt < 0.6
+        ? `2024-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
+        : fmt < 0.9
+          ? `${d}/${m}/2024`
+          : r() < 0.5 ? "" : `${String(d).padStart(2, "0")}-${String(m).padStart(2, "0")}-2024`;
+    const importeBase = Math.round((20 + r() * 180) * 100) / 100;
+    const importe =
+      i % 47 === 0 ? 9850 : i % 13 === 0 ? `${importeBase} €` : r() < 0.05 ? null : importeBase;
+    rows.push({
+      id_transaccion: `TRX-${1000 + i}`,
+      cliente: `  cliente ${Math.floor(r() * 60)}`.replace(/^\s+/, r() < 0.3 ? "  " : ""),
+      pais: pick(paises),
+      canal: pick(canales),
+      fecha_compra: fecha,
+      importe,
+      unidades: r() < 0.08 ? null : String(1 + Math.floor(r() * 5)) + ".0",
+      descuento: r() < 0.55 ? null : Math.round(r() * 30),
+    });
+  }
+  // Duplicados exactos
+  for (const i of [5, 18, 33, 61, 90, 120, 150]) rows.push({ ...rows[i]! });
+  return { headers, rows };
 }
