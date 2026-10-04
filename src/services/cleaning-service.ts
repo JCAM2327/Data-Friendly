@@ -229,7 +229,6 @@ export function convertDates(t: RawTable, col: string, order: "dmy" | "mdy", inc
     const yy = x[3]!.length === 2 ? 2000 + Number(x[3]) : Number(x[3]);
     const amb = a <= 12 && b <= 12 && a !== b;
     if (amb && !includeAmbiguous) { skipped++; return v; }
-    if (a > 12) order = order; // claramente día primero
     const [d, mo] = a > 12 ? [a, b] : b > 12 ? [b, a] : order === "dmy" ? [a, b] : [b, a];
     a = d; b = mo;
     return fmtIso(yy, b, a) ?? (failed++, v);
