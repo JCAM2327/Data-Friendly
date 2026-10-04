@@ -133,18 +133,15 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
   );
 
   const undoLastStep = useCallback(() => {
-    setSteps((prev) => {
-      const last = prev[prev.length - 1];
-      if (last) {
-        registerOperation({
-          kind: "limpieza",
-          label: "Transformación deshecha",
-          detail: `${last.operation}${last.column ? ` · ${last.column}` : ""}`,
-        });
-      }
-      return prev.slice(0, -1);
+    const last = steps[steps.length - 1];
+    if (!last) return;
+    setSteps(steps.slice(0, -1));
+    registerOperation({
+      kind: "limpieza",
+      label: "Transformación deshecha",
+      detail: `${last.operation}${last.column ? ` · ${last.column}` : ""}`,
     });
-  }, [registerOperation]);
+  }, [steps, registerOperation]);
 
   const value = useMemo(
     () => ({
