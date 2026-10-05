@@ -101,7 +101,8 @@ function LimpiezaPage() {
     ? pending.result.table.headers.slice(0, 6).map((h) => ({ key: h, header: h }))
     : [];
 
-  const stepCols: Column<(typeof steps)[number]>[] = [
+  type StepRow = (typeof steps)[number] & Record<string, unknown>;
+  const stepCols: Column<StepRow>[] = [
     { key: "operation", header: "Operación", render: (s) => <span className="font-medium">{s.operation}</span> },
     { key: "column", header: "Columna", render: (s) => s.column || "—" },
     { key: "method", header: "Método", render: (s) => <span className="text-muted-foreground">{s.method}</span> },
