@@ -1,45 +1,71 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Database } from "lucide-react";
+import { Database, Undo2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard, CardHeading } from "@/components/common/GlassCard";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { DemoNotice } from "@/components/common/DemoNotice";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { ModuleStub } from "@/components/common/ModuleStub";
-import { severityLabel, severityTone } from "@/lib/severity";
+import { DataTable, type Column } from "@/components/common/DataTable";
 import { useDataset } from "@/state/dataset-store";
-import { formatNumber, formatPct } from "@/lib/format";
+import { formatNumber, formatPct, formatDateTime } from "@/lib/format";
+import { DuplicatesPanel } from "@/components/cleaning/DuplicatesPanel";
+import { MissingPanel } from "@/components/cleaning/MissingPanel";
+import { TextPanel, DatesPanel } from "@/components/cleaning/TextDatesPanels";
+import { CategoriesPanel, TypesPanel, OutliersPanel } from "@/components/cleaning/CategoryTypesOutliers";
+import { Comparison } from "@/components/cleaning/Comparison";
+import { Note, type PendingOp } from "@/components/cleaning/shared";
+import type { RawTable } from "@/services/file-parser";
 
 export const Route = createFileRoute("/limpieza")({
   head: () => ({
     meta: [
       { title: "Limpieza · DataClean AI" },
-      {
-        name: "description",
-        content: "Correcciones propuestas y limpieza controlada con confirmación previa.",
-      },
+      { name: "description", content: "Limpieza controlada: vista previa de cada cambio antes de confirmarlo." },
       { property: "og:title", content: "Limpieza · DataClean AI" },
-      {
-        property: "og:description",
-        content: "Revisa cada corrección antes de aplicarla sobre el dataset activo.",
-      },
+      { property: "og:description", content: "Revisa cada corrección antes de aplicarla sobre el dataset activo." },
     ],
   }),
   component: LimpiezaPage,
 });
 
-function LimpiezaPage() {
-  const { dataset, loadDemoDataset, plannedIssueIds } = useDataset();
+const SECTIONS = [
+  { id: "duplicados", label: "Duplicados" },
+  { id: "faltantes", label: "Valores faltantes" },
+  { id: "texto", label: "Texto" },
+  { id: "fechas", label: "Fechas" },
+  { id: "categorias", label: "Categorías" },
+  { id: "tipos", label: "Tipos de dato" },
+  { id: "outliers", label: "Outliers" },
+] as const;
 
-  if (!dataset) {
+type SectionId = (typeof SECTIONS)[number]["id"];
+
+function previewRows(t: RawTable): Record<string, unknown>[] {
+  return t.rows.slice(0, 5).map((r) =>
+    Object.fromEntries(t.headers.map((h) => [h, typeof r[h] === "object" && r[h] !== null ? JSON.stringify(r[h]) : r[h]])),
+  );
+}
+
+function LimpiezaPage() {
+  const { dataset, originalDataset, currentTable, steps, loadDemoDataset, applyStep, undoLastStep, profile } = useDataset();
+  const [section, setSection] = useState<SectionId>("duplicados");
+  const [pending, setPending] = useState<PendingOp | null>(null);
+
+  const afterSummary = useMemo(
+    () => (pending ? profile(pending.result.table) : null),
+    [pending, profile],
+  );
+
+  if (!dataset || !currentTable || !originalDataset) {
     return (
       <>
         <PageHeader title="Limpieza" description="Correcciones controladas sobre el dataset." />
         <EmptyState
           icon={Database}
           title="Nada que limpiar todavía"
-          description="Las correcciones se derivan del diagnóstico. Carga un dataset para verlas."
+          description="La limpieza se aplica sobre el dataset activo. Carga uno para empezar."
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild size="lg">
@@ -55,19 +81,45 @@ function LimpiezaPage() {
     );
   }
 
-  const pending = plannedIssueIds.length
-    ? dataset.issues.filter((i) => plannedIssueIds.includes(i.id))
-    : dataset.issues;
+  const profiles = dataset.columnProfiles;
+  const panelProps = { table: currentTable, profiles, onPreview: setPending };
+
+  const confirm = () => {
+    if (!pending) return;
+    applyStep({
+      operation: pending.operation,
+      column: pending.column,
+      method: pending.method,
+      affected: pending.result.affected,
+      result: pending.result.result,
+      table: pending.result.table,
+    });
+    setPending(null);
+  };
+
+  const previewCols: Column<Record<string, unknown>>[] = pending
+    ? pending.result.table.headers.slice(0, 6).map((h) => ({ key: h, header: h }))
+    : [];
+
+  const stepCols: Column<(typeof steps)[number]>[] = [
+    { key: "operation", header: "Operación", render: (s) => <span className="font-medium">{s.operation}</span> },
+    { key: "column", header: "Columna", render: (s) => s.column || "—" },
+    { key: "method", header: "Método", render: (s) => <span className="text-muted-foreground">{s.method}</span> },
+    { key: "affected", header: "Registros", align: "right", render: (s) => formatNumber(s.affected) },
+    { key: "at", header: "Hora", align: "right", render: (s) => <span className="text-muted-foreground">{formatDateTime(s.at)}</span> },
+  ];
 
   return (
     <>
       <PageHeader
         title="Limpieza"
-        description="Revisa cada corrección antes de aplicarla."
+        description="Cada cambio se previsualiza antes de confirmarse. El dataset original nunca se modifica."
         action={
-          <StatusBadge tone="info" dot>
-            {pending.length} corrección(es) pendiente(s)
-          </StatusBadge>
+          steps.length ? (
+            <StatusBadge tone="info" dot>
+              {steps.length} transformación(es) aplicada(s)
+            </StatusBadge>
+          ) : undefined
         }
       />
 
@@ -79,52 +131,104 @@ function LimpiezaPage() {
           meta={`${formatNumber(dataset.rows)} filas · ${formatPct(dataset.missingPct)} faltantes · ${formatNumber(dataset.duplicates)} duplicados`}
           action={<StatusBadge tone="info">Score {dataset.qualityScore}</StatusBadge>}
         />
+        {steps.length ? (
+          <div className="mt-3">
+            <Comparison before={originalDataset} after={dataset} beforeLabel="Original" afterLabel="Actual" />
+          </div>
+        ) : null}
       </GlassCard>
+
+      <div className="flex flex-wrap gap-2">
+        {SECTIONS.map((s) => (
+          <Button
+            key={s.id}
+            size="sm"
+            variant={section === s.id ? "default" : "outline"}
+            onClick={() => {
+              setSection(s.id);
+              setPending(null);
+            }}
+          >
+            {s.label}
+          </Button>
+        ))}
+      </div>
+
+      <GlassCard>
+        <CardHeading title={SECTIONS.find((s) => s.id === section)!.label} meta="Configura y pulsa una acción para ver la vista previa" />
+        <div className="mt-3">
+          {section === "duplicados" ? <DuplicatesPanel {...panelProps} /> : null}
+          {section === "faltantes" ? <MissingPanel {...panelProps} /> : null}
+          {section === "texto" ? <TextPanel {...panelProps} /> : null}
+          {section === "fechas" ? <DatesPanel {...panelProps} /> : null}
+          {section === "categorias" ? <CategoriesPanel {...panelProps} /> : null}
+          {section === "tipos" ? <TypesPanel {...panelProps} /> : null}
+          {section === "outliers" ? <OutliersPanel {...panelProps} /> : null}
+        </div>
+      </GlassCard>
+
+      {pending ? (
+        <GlassCard>
+          <CardHeading
+            title="Vista previa del cambio"
+            meta={`${pending.operation}${pending.column ? ` · ${pending.column}` : ""}`}
+            action={<StatusBadge tone="warning">Sin confirmar</StatusBadge>}
+          />
+          <div className="mt-3 space-y-3">
+            <Note>{pending.result.result}</Note>
+            {pending.result.warnings.map((w) => (
+              <Note key={w} tone="warning">
+                {w}
+              </Note>
+            ))}
+            {pending.result.samples.length ? (
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium text-muted-foreground">Ejemplos del cambio</p>
+                {pending.result.samples.map((s, i) => (
+                  <p key={i} className="font-mono text-[12px]">
+                    <span className="text-danger line-through">{s.before}</span>
+                    {" → "}
+                    <span className="text-success">{s.after}</span>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            <DataTable columns={previewCols} rows={previewRows(pending.result.table)} />
+            {afterSummary ? <Comparison before={dataset} after={afterSummary} /> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={confirm}>
+                <Check className="size-4" aria-hidden /> Confirmar cambio
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setPending(null)}>
+                <X className="size-4" aria-hidden /> Descartar
+              </Button>
+            </div>
+          </div>
+        </GlassCard>
+      ) : null}
 
       <GlassCard>
         <CardHeading
-          title="Correcciones propuestas"
-          meta={plannedIssueIds.length ? `${pending.length} seleccionada(s) en Calidad` : `${pending.length} pendiente(s) · selecciona en Calidad cuáles aplicar`}
+          title="Transformaciones aplicadas"
+          meta={steps.length ? "Se aplican en orden; puedes deshacer la última" : "Aún no hay cambios confirmados"}
+          action={
+            steps.length ? (
+              <Button size="sm" variant="outline" onClick={undoLastStep}>
+                <Undo2 className="size-4" aria-hidden /> Deshacer última
+              </Button>
+            ) : undefined
+          }
         />
-        <ul className="mt-3 space-y-2">
-          {pending.length === 0 ? (
-            <li className="rounded-xl glass-inset p-4 text-center text-[12px] text-muted-foreground ring-1 ring-white/50">
-              Todas las incidencias detectadas están resueltas.
-            </li>
-          ) : (
-            pending.map((issue) => (
-              <li key={issue.id} className="rounded-xl glass-inset p-3 ring-1 ring-white/50">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium">{issue.title}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {issue.column ? `${issue.column} · ` : ""}
-                      {formatNumber(issue.affectedRows)} fila(s) afectada(s)
-                    </p>
-                  </div>
-                  <StatusBadge tone={severityTone[issue.severity]}>
-                    {severityLabel[issue.severity]}
-                  </StatusBadge>
-                </div>
-                <p className="mt-2 rounded-lg bg-primary/8 px-2.5 py-1.5 text-[11px] text-muted-foreground ring-1 ring-primary/12">
-                  {issue.suggestedFix ?? "Sin corrección automática disponible."}
-                </p>
-              </li>
-            ))
-          )}
-        </ul>
+        {steps.length ? (
+          <div className="mt-3">
+            <DataTable columns={stepCols} rows={[...steps].reverse()} />
+          </div>
+        ) : (
+          <p className="mt-3 rounded-xl glass-inset p-4 text-center text-[12px] text-muted-foreground ring-1 ring-white/50">
+            Confirma una vista previa para registrar la primera transformación.
+          </p>
+        )}
       </GlassCard>
-
-      <ModuleStub
-        icon={Sparkles}
-        title="Limpieza avanzada prevista"
-        items={[
-          "Selección de estrategia de imputación por columna",
-          "Normalización de texto y categorías",
-          "Detección y tratamiento de valores atípicos",
-          "Vista previa del cambio antes de confirmar",
-        ]}
-      />
     </>
   );
 }
