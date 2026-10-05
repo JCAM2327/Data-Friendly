@@ -222,7 +222,7 @@ function LimpiezaPage() {
         />
         {steps.length ? (
           <div className="mt-3">
-            <DataTable columns={stepCols} rows={[...steps].reverse()} />
+            <DataTable columns={stepCols} rows={[...steps].reverse() as StepRow[]} />
           </div>
         ) : (
           <p className="mt-3 rounded-xl glass-inset p-4 text-center text-[12px] text-muted-foreground ring-1 ring-white/50">
