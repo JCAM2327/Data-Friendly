@@ -31,6 +31,8 @@ interface DatasetContextValue {
   dataset: DatasetSummary | null;
   /** Perfil del dataset original, que nunca se modifica. */
   originalDataset: DatasetSummary | null;
+  /** Tabla original, nunca modificada. */
+  originalTable: RawTable | null;
   /** Tabla de trabajo actual. */
   currentTable: RawTable | null;
   steps: CleaningStep[];
@@ -147,6 +149,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     () => ({
       dataset,
       originalDataset,
+      originalTable: original?.table ?? null,
       currentTable,
       steps,
       history,
@@ -161,7 +164,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       plannedIssueIds,
       togglePlanned,
     }),
-    [dataset, originalDataset, currentTable, steps, history, loadDemoDataset, loadDataset, clearDataset, registerOperation, applyStep, undoLastStep, profile, plannedIssueIds, togglePlanned],
+    [dataset, originalDataset, original, currentTable, steps, history, loadDemoDataset, loadDataset, clearDataset, registerOperation, applyStep, undoLastStep, profile, plannedIssueIds, togglePlanned],
   );
 
   return <DatasetContext.Provider value={value}>{children}</DatasetContext.Provider>;
