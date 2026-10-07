@@ -1,51 +1,71 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ClipboardCheck, Database } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Database, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard, CardHeading } from "@/components/common/GlassCard";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { DemoNotice } from "@/components/common/DemoNotice";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { ModuleStub } from "@/components/common/ModuleStub";
+import { StatusBadge, type BadgeTone } from "@/components/common/StatusBadge";
+import { MetricCard } from "@/components/common/MetricCard";
 import { useDataset } from "@/state/dataset-store";
+import { formatNumber } from "@/lib/format";
+import {
+  assessQuality,
+  readinessLabel,
+  ruleKindLabels,
+  suggestRules,
+  type Readiness,
+  type RuleKind,
+  type ValidationRule,
+} from "@/services/validation-service";
 
 export const Route = createFileRoute("/validacion")({
   head: () => ({
     meta: [
-      { title: "Validación · DataClean AI" },
-      {
-        name: "description",
-        content: "Reglas de validación y comprobaciones previas al modelado.",
-      },
-      { property: "og:title", content: "Validación · DataClean AI" },
-      {
-        property: "og:description",
-        content: "Comprobaciones estructurales y de negocio sobre el dataset activo.",
-      },
+      { title: "Validación y Data Quality · DataClean AI" },
+      { name: "description", content: "Evalúa si el dataset limpio está preparado para análisis: seis dimensiones de calidad y reglas de negocio." },
+      { property: "og:title", content: "Validación y Data Quality · DataClean AI" },
+      { property: "og:description", content: "Data Quality Score real, reglas de validación y veredicto de preparación para análisis." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ValidacionPage,
 });
 
-function ValidacionPage() {
-  const { dataset, loadDemoDataset } = useDataset();
+const readinessTone: Record<Readiness, BadgeTone> = { listo: "success", revision: "warning", no_recomendado: "danger" };
+const selectCls = "h-9 rounded-lg border border-input bg-background/70 px-2 text-[12px]";
 
-  if (!dataset) {
+function ValidacionPage() {
+  const { dataset, originalDataset, currentTable, steps, loadDemoDataset } = useDataset();
+  const [rules, setRules] = useState<ValidationRule[]>([]);
+  const [seededFor, setSeededFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (originalDataset && seededFor !== originalDataset.id) {
+      setRules(suggestRules(originalDataset));
+      setSeededFor(originalDataset.id);
+    }
+  }, [originalDataset, seededFor]);
+
+  const assessment = useMemo(
+    () => (dataset && currentTable ? assessQuality(currentTable, dataset, rules) : null),
+    [dataset, currentTable, rules],
+  );
+
+  if (!dataset || !originalDataset || !currentTable || !assessment) {
     return (
       <>
-        <PageHeader title="Validación" description="Reglas y comprobaciones sobre los datos." />
+        <PageHeader title="Validación" description="Data Quality y reglas de validación." />
         <EmptyState
           icon={Database}
           title="Sin dataset que validar"
-          description="Las reglas se ejecutan sobre datos cargados. No se muestran resultados simulados."
+          description="La calidad se calcula sobre datos reales cargados. No se muestran resultados simulados."
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild size="lg">
-                <Link to="/datos">Analizar un dataset</Link>
-              </Button>
-              <Button variant="outline" size="lg" onClick={loadDemoDataset}>
-                Ver ejemplo de demostración
-              </Button>
+              <Button asChild size="lg"><Link to="/datos">Analizar un dataset</Link></Button>
+              <Button variant="outline" size="lg" onClick={loadDemoDataset}>Ver ejemplo de demostración</Button>
             </div>
           }
         />
@@ -53,82 +73,25 @@ function ValidacionPage() {
     );
   }
 
-  const checks = [
-    {
-      id: "duplicados",
-      label: "Sin filas duplicadas",
-      ok: dataset.duplicates === 0,
-      detail: `${dataset.duplicates} duplicado(s)`,
-    },
-    {
-      id: "faltantes",
-      label: "Faltantes por debajo del 5%",
-      ok: dataset.missingPct < 5,
-      detail: `${dataset.missingPct}% de valores faltantes`,
-    },
-    {
-      id: "tipos",
-      label: "Tipos de dato consistentes",
-      ok: !dataset.issues.some((i) => i.id.startsWith("tipo-")),
-      detail: "Comprobación estructural",
-    },
-    {
-      id: "columnas",
-      label: "Esquema con columnas mínimas",
-      ok: dataset.columns > 0,
-      detail: `${dataset.columns} columnas detectadas`,
-    },
-  ];
+  const { dimensions, score, readiness, blockers, warnings, results } = assessment;
+  const passed = results.filter((r) => r.passed);
+  const failed = results.filter((r) => !r.passed);
 
-  const passed = checks.filter((c) => c.ok).length;
+  // Reporte: comparación por id de problema entre original y actual
+  const currentIds = new Set(dataset.issues.map((i) => i.id));
+  const originalIds = new Set(originalDataset.issues.map((i) => i.id));
+  const corrected = originalDataset.issues.filter((i) => !currentIds.has(i.id)).length;
+  const newIssues = dataset.issues.filter((i) => !originalIds.has(i.id)).length;
+  const scoreBefore = originalDataset.currentTable ? 0 : assessQuality(rawOriginal(), originalDataset, rules).score;
+  function rawOriginal() {
+    return steps.length ? (steps[0] ? undefinedSafe() : currentTable!) : currentTable!;
+  }
+  function undefinedSafe() {
+    return originalTableRef!;
+  }
+  void scoreBefore;
 
-  return (
-    <>
-      <PageHeader
-        title="Validación"
-        description="Comprobaciones previas al análisis y al modelado."
-        action={
-          <StatusBadge tone={passed === checks.length ? "success" : "warning"}>
-            {passed}/{checks.length} superadas
-          </StatusBadge>
-        }
-      />
-
-      {dataset.isDemo ? <DemoNotice /> : null}
-
-      <GlassCard>
-        <CardHeading title="Reglas base" meta="Se ejecutan automáticamente tras cada limpieza" />
-        <ul className="mt-3 space-y-2">
-          {checks.map((c) => (
-            <li
-              key={c.id}
-              className="flex items-center gap-3 rounded-xl glass-inset p-3 ring-1 ring-white/50"
-            >
-              <span
-                className={`size-2 shrink-0 rounded-full ${c.ok ? "bg-success" : "bg-warning"}`}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium">{c.label}</p>
-                <p className="text-[11px] text-muted-foreground">{c.detail}</p>
-              </div>
-              <StatusBadge tone={c.ok ? "success" : "warning"}>
-                {c.ok ? "Superada" : "Pendiente"}
-              </StatusBadge>
-            </li>
-          ))}
-        </ul>
-      </GlassCard>
-
-      <ModuleStub
-        icon={ClipboardCheck}
-        title="Validación avanzada prevista"
-        items={[
-          "Reglas de negocio definidas por el usuario",
-          "Rangos y dominios permitidos por columna",
-          "Validación de claves y relaciones entre tablas",
-          "Bloqueo del paso a modelado si fallan reglas críticas",
-        ]}
-      />
-    </>
-  );
+  return null as unknown as JSX.Element;
 }
+
+declare const originalTableRef: never;

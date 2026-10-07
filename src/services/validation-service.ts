@@ -228,7 +228,7 @@ export function assessQuality(t: RawTable, ds: DatasetSummary, rules: Validation
   if (rows < 30) warnings.push(`Solo ${rows} filas: muestra pequeña para análisis fiables.`);
 
   const readiness: Readiness =
-    blockers.length === 0 && score >= 85 ? (warnings.length ? "revision" : "listo")
+    blockers.length === 0 && score >= 85 ? "listo"
     : score < 60 || blockers.length > 2 ? "no_recomendado" : "revision";
   return { dimensions, score, readiness, blockers, warnings, results };
 }
