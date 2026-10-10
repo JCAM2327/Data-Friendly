@@ -80,4 +80,10 @@ export interface MlRecommendation {
   family: "supervisado" | "no_supervisado" | "series_temporales" | "nlp";
   rationale: string;
   requirement: string;
+  /** Columna sugerida como variable objetivo, si aplica. */
+  suggestedTarget?: string | undefined;
+  /** 0–100: qué tan bien encaja la técnica con el dataset actual. */
+  fitScore?: number | undefined;
+  /** Preparación previa recomendada según el EDA. */
+  preparation?: string[] | undefined;
 }
