@@ -133,9 +133,25 @@ def _modeling_section(modeling: dict[str, Any]) -> str:
         ("Tarea", modeling.get("task")),
         ("Filas usadas", modeling.get("rows_used")),
         ("Ganador", modeling.get("winner")),
-        ("Lift", modeling.get("lift")),
+        ("Lift", modeling.get("lift_vs_baseline")),
     ]
-    return _kv_table(rows)
+    html = _kv_table(rows)
+    # Feature importances for non-baseline models
+    for model in modeling.get("models") or []:
+        imps = model.get("feature_importances")
+        if imps:
+            html += f"<h3>Importancia de variables — {escape(model.get('name') or '')}</h3>"
+            headers = ["Feature", "Importancia"]
+            body = []
+            for item in imps[:15]:  # limit display
+                body.append(
+                    "<tr>"
+                    f"<td>{escape(str(item.get('feature') or ''))}</td>"
+                    f"<td>{escape(str(item.get('importance') or ''))}</td>"
+                    "</tr>"
+                )
+            html += _html_table(headers, body)
+    return html
 
 
 def _kv_table(rows: list[tuple[str, Any]]) -> str:
