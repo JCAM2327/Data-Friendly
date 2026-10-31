@@ -67,3 +67,7 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 ## Fase 11 — Selección de características por correlación
 
 - [x] Exclusión opcional de columnas numéricas altamente correlacionadas (`drop_high_correlation_threshold`)
+
+## Fase 12 — Importancia de variables
+
+- [x] Informe de importancia de variables derivado de los modelos no baseline (coeficientes absolutos o feature importances de árboles)

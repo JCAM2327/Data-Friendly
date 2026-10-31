@@ -7,6 +7,19 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-10-31
+
+### Añadido
+- Extracción de importancia de variables en la comparación de modelos: coeficientes absolutos (media por clase en clasificación multiclase) para modelos lineales y `feature_importances_` para árboles de decisión.
+- Las importancias se incluyen en cada modelo no baseline del informe (`feature_importances`: lista de `{feature, importance}` ordenada descendentemente, solo valores positivos).
+- Visualización de las importancias (top 15) en el informe HTML bajo la sección de modelado.
+- Pruebas unitarias verifican la presencia y estructura de las importancias.
+
+### Cambiado
+- Versión del paquete y de la API a 0.22.0.
+- Descripción del paquete, README y esquema OpenAPI actualizados.
+- ROADMAP: nueva Fase 12 — Importancia de variables, con el ítem marcado como completado.
+
 ## [0.21.0] — 2026-10-30
 
 ### Añadido
