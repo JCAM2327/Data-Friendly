@@ -3,6 +3,7 @@ import pandas as pd
 
 from dataclean.models import compare_models
 
+
 def _classification_frame(n: int = 80) -> pd.DataFrame:
     rng = np.random.default_rng(7)
     edad = rng.integers(18, 70, n)
@@ -31,6 +32,12 @@ def test_classification_compares_majority_baseline_and_two_models():
     assert "id" in report["features_dropped"]
     assert report["beats_baseline"] is True
     assert report["lift_vs_baseline"] > 0
+    # Feature importances present on non-baseline models
+    for model in report["models"]:
+        assert "feature_importances" in model
+        assert isinstance(model["feature_importances"], list)
+        assert len(model["feature_importances"]) > 0
+        assert all("feature" in item and "importance" in item for item in model["feature_importances"])
 
 
 def test_regression_compares_mean_baseline():
@@ -48,6 +55,9 @@ def test_regression_compares_mean_baseline():
     assert "constante" in report["features_dropped"]
     assert report["winner"] == "regresion_lineal"
     assert report["beats_baseline"] is True
+    for model in report["models"]:
+        assert "feature_importances" in model
+        assert len(model["feature_importances"]) > 0
 
 
 def test_skips_without_usable_target():
