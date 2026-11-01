@@ -7,6 +7,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-11-01
+
+### Añadido
+- Parámetro opcional `importance_threshold` en `compare_models`, `analyze_frame`, CLI (`--importance-threshold`) y endpoint `POST /datasets`.
+- Cuando se especifica un umbral positivo, el informe de modelado incluye `low_importance_candidates`: lista de features cuya importancia máxima entre modelos no baseline es inferior al umbral (ordenada ascendentemente), con el valor de importancia máxima observado.
+- Prueba unitaria `test_importance_threshold_reports_candidates`.
+
+### Cambiado
+- Versión del paquete y de la API a 0.23.0.
+- Descripción del paquete, README y esquema OpenAPI actualizados.
+- ROADMAP: nueva Fase 13 — Candidatos por umbral de importancia, con el ítem marcado como completado.
+
 ## [0.22.0] — 2026-10-31
 
 ### Añadido

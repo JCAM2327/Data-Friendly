@@ -40,6 +40,24 @@ def test_classification_compares_majority_baseline_and_two_models():
         assert all("feature" in item and "importance" in item for item in model["feature_importances"])
 
 
+def test_importance_threshold_reports_candidates():
+    df = _classification_frame()
+    report = compare_models(
+        df,
+        {"found": True, "column": "objetivo", "task": "classification", "warnings": []},
+        importance_threshold=0.1,
+    )
+    assert report["status"] == "compared"
+    candidates = report["low_importance_candidates"]
+    assert candidates is not None
+    assert isinstance(candidates, list)
+    # With a high threshold relative to typical importances some or none may appear;
+    # the structure must be present and sorted.
+    if candidates:
+        assert all("feature" in c and "max_importance" in c for c in candidates)
+        assert candidates == sorted(candidates, key=lambda c: c["max_importance"])
+
+
 def test_regression_compares_mean_baseline():
     rng = np.random.default_rng(3)
     x = rng.normal(0, 1, 60)

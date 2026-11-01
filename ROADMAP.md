@@ -71,3 +71,7 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 ## Fase 12 — Importancia de variables
 
 - [x] Informe de importancia de variables derivado de los modelos no baseline (coeficientes absolutos o feature importances de árboles)
+
+## Fase 13 — Candidatos por umbral de importancia
+
+- [x] Parámetro opcional `importance_threshold` para reportar features de baja importancia máxima como candidatos a exclusión en el informe de modelado

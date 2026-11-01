@@ -51,6 +51,7 @@ def analyze_frame(
     onehot_drop_first: bool = False,
     drop_low_variance_threshold: float | None = None,
     drop_high_correlation_threshold: float | None = None,
+    importance_threshold: float | None = None,
 ) -> tuple[dict, pd.DataFrame | None]:
     profile = profile_dataframe(df)
     issues = detect_issues(df)
@@ -106,7 +107,9 @@ def analyze_frame(
         }
     modeling_frame = cleaned if cleaned is not None else df
     modeling_target = report.get("applied", {}).get("target", target_report)
-    report["modeling"] = compare_models(modeling_frame, modeling_target)
+    report["modeling"] = compare_models(
+        modeling_frame, modeling_target, importance_threshold=importance_threshold
+    )
     report["summary"]["model_status"] = report["modeling"]["status"]
     report["summary"]["model_winner"] = report["modeling"]["winner"]
     return report, cleaned
@@ -164,6 +167,12 @@ def main() -> None:
         default=None,
         help="Excluir columnas numéricas con |correlación| absoluta superior o igual a este umbral respecto a otra",
     )
+    parser.add_argument(
+        "--importance-threshold",
+        type=float,
+        default=None,
+        help="Umbral de importancia: features cuya importancia máxima en modelos no baseline sea inferior se reportan como candidatos a exclusión",
+    )
     args = parser.parse_args()
     strategies = {}
     if args.impute_numeric:
@@ -188,6 +197,7 @@ def main() -> None:
         onehot_drop_first=args.onehot_drop_first,
         drop_low_variance_threshold=args.drop_low_variance_threshold,
         drop_high_correlation_threshold=args.drop_high_correlation_threshold,
+        importance_threshold=args.importance_threshold,
     )
     text = json.dumps(report, ensure_ascii=False, indent=2)
     if args.out:

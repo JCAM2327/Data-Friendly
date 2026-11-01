@@ -28,13 +28,16 @@ def compare_models(
     target_report: dict[str, Any],
     test_size: float = DEFAULT_TEST_SIZE,
     random_state: int = RANDOM_STATE,
+    importance_threshold: float | None = None,
 ) -> dict[str, Any]:
     """Compare a baseline against two simple models on a held-out split.
 
     Classification uses the majority class as baseline, logistic regression and
     a depth-limited tree. Regression uses the training mean, linear regression
     and a depth-limited tree. Metrics, warnings and feature importances (when
-    available) are part of the same report.
+    available) are part of the same report. If importance_threshold is provided,
+    low_importance_candidates lists features whose maximum importance across
+    non-baseline models is below the threshold.
     """
     if not target_report.get("found"):
         return _skipped(
@@ -124,6 +127,7 @@ def compare_models(
     models = fitted[1:]
     winner = _winner(fitted, primary, higher_is_better)
     lift = _lift(winner, baseline, primary, higher_is_better)
+    low_importance = _low_importance_candidates(models, importance_threshold)
     return {
         "status": "compared",
         "task": task,
@@ -147,6 +151,7 @@ def compare_models(
         "lift_vs_baseline": round(lift, 6),
         "warnings": _unique(warnings),
         "rationale": _rationale(task, baseline["name"], winner["name"], lift, primary),
+        "low_importance_candidates": low_importance,
     }
 
 
@@ -310,6 +315,27 @@ def _rationale(task: str, baseline: str, winner: str, lift: float, metric: str) 
     )
 
 
+def _low_importance_candidates(
+    models: list[dict[str, Any]], threshold: float | None
+) -> list[dict[str, Any]] | None:
+    """Return features whose max importance across models is below threshold."""
+    if threshold is None or threshold <= 0:
+        return None
+    max_imp: dict[str, float] = {}
+    for model in models:
+        for item in model.get("feature_importances") or []:
+            feat = item["feature"]
+            imp = float(item["importance"])
+            max_imp[feat] = max(max_imp.get(feat, 0.0), imp)
+    candidates = [
+        {"feature": feat, "max_importance": round(imp, 6)}
+        for feat, imp in max_imp.items()
+        if imp < threshold
+    ]
+    candidates.sort(key=lambda item: item["max_importance"])
+    return candidates
+
+
 def _skipped(rationale: str, warnings: list[str], target_report: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": "skipped",
@@ -328,6 +354,7 @@ def _skipped(rationale: str, warnings: list[str], target_report: dict[str, Any])
         "lift_vs_baseline": None,
         "warnings": warnings,
         "rationale": rationale,
+        "low_importance_candidates": None,
     }
 
 

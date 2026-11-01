@@ -22,7 +22,7 @@ app = FastAPI(
     title="DataClean AI",
     description=(
         "Plataforma para perfilar datasets tabulares, detectar problemas de calidad, "
-        "generar y aplicar planes de limpieza (incluye clipping de outliers IQR, estrategias de imputación configurables, estandarización opcional de columnas numéricas, codificación opcional de variables categóricas con soporte drop_first, exclusión opcional de columnas numéricas de baja varianza y exclusión opcional de columnas numéricas altamente correlacionadas), detectar variable objetivo, comparar modelos baseline e informar importancia de variables. "
+        "generar y aplicar planes de limpieza (incluye clipping de outliers IQR, estrategias de imputación configurables, estandarización opcional de columnas numéricas, codificación opcional de variables categóricas con soporte drop_first, exclusión opcional de columnas numéricas de baja varianza y exclusión opcional de columnas numéricas altamente correlacionadas), detectar variable objetivo, comparar modelos baseline e informar importancia de variables (con candidatos a exclusión por umbral de importancia opcional). "
         "Soporta carga de CSV, Excel (.xlsx/.xls) y Parquet. "
         "Los informes se aíslan por usuario mediante la cabecera obligatoria `X-User-Id`. "
         "Si se configura la variable de entorno `DATACLEAN_API_KEY`, se exige adicionalmente la cabecera `X-API-Key`. "
@@ -32,7 +32,7 @@ app = FastAPI(
         "El parámetro opcional `drop_low_variance_threshold` excluye columnas numéricas de baja varianza. "
         "El parámetro opcional `drop_high_correlation_threshold` excluye columnas numéricas altamente correlacionadas."
     ),
-    version="0.22.0",
+    version="0.23.0",
     openapi_tags=[
         {"name": "Datasets", "description": "Carga, consulta y gestión de datasets y sus informes."},
         {"name": "Informes", "description": "Exportación de informes HTML y descarga de datos limpios."},
@@ -114,6 +114,10 @@ async def upload_dataset(
         None,
         description="Excluir columnas numéricas con |correlación| absoluta superior o igual a este umbral respecto a otra",
     ),
+    importance_threshold: float | None = Query(
+        None,
+        description="Umbral de importancia: features cuya importancia máxima en modelos no baseline sea inferior se reportan como candidatos a exclusión",
+    ),
 ) -> UploadResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Nombre de archivo requerido")
@@ -136,6 +140,7 @@ async def upload_dataset(
         onehot_drop_first=onehot_drop_first,
         drop_low_variance_threshold=drop_low_variance_threshold,
         drop_high_correlation_threshold=drop_high_correlation_threshold,
+        importance_threshold=importance_threshold,
     )
     record = store.create(user_id, file.filename, df, report)
     return UploadResponse(
