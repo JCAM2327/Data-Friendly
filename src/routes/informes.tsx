@@ -1,145 +1,52 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, Database, Download } from "lucide-react";
+import { useMemo } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Database, Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GlassCard, CardHeading } from "@/components/common/GlassCard";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
-import { DemoNotice } from "@/components/common/DemoNotice";
 import { MetricCard } from "@/components/common/MetricCard";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { ModuleStub } from "@/components/common/ModuleStub";
+import { ReportDocument } from "@/components/reports/ReportDocument";
+import reportCss from "@/components/reports/report.css?raw";
+import "@/components/reports/report.css";
 import { useDataset } from "@/state/dataset-store";
-import { formatDateTime, formatNumber, formatPct, scoreLabel } from "@/lib/format";
-import { countBySeverity } from "@/services/dataset-service";
+import { buildReport } from "@/services/report-service";
+import { downloadText } from "@/lib/download";
 
 export const Route = createFileRoute("/informes")({
-  head: () => ({
-    meta: [
-      { title: "Informes · DataClean AI" },
-      {
-        name: "description",
-        content: "Resumen ejecutable del estado de calidad del dataset listo para compartir.",
-      },
-      { property: "og:title", content: "Informes · DataClean AI" },
-      {
-        property: "og:description",
-        content: "Reporte de calidad con métricas, incidencias y trazabilidad.",
-      },
-    ],
-  }),
+  head: () => ({ meta: [
+    { title: "Informe de calidad exportable · DataClean AI" },
+    { name: "description", content: "Informe completo del diagnóstico, limpieza, validación y EDA con comparación antes y después." },
+    { property: "og:title", content: "Informe de calidad exportable · DataClean AI" },
+    { property: "og:description", content: "Resultados reales del dataset, trazabilidad y exportación HTML o impresión PDF." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: InformesPage,
 });
 
 function InformesPage() {
-  const { dataset, history, loadDemoDataset } = useDataset();
+  const { dataset, originalDataset, currentTable, originalTable, validationRules, steps, history, registerOperation, loadDemoDataset } = useDataset();
+  const report = useMemo(() => dataset && originalDataset && currentTable && originalTable ? buildReport({
+    current: dataset, original: originalDataset, currentTable, originalTable, rules: validationRules, steps, history, generatedAt: new Date().toISOString(),
+  }) : null, [dataset, originalDataset, currentTable, originalTable, validationRules, steps, history]);
 
-  if (!dataset) {
-    return (
-      <>
-        <PageHeader title="Informes" description="Reporte de calidad del dataset." />
-        <EmptyState
-          icon={Database}
-          title="Sin informe disponible"
-          description="El informe se genera a partir de un diagnóstico real. No se publican cifras estimadas."
-          action={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild size="lg">
-                <Link to="/datos">Analizar un dataset</Link>
-              </Button>
-              <Button variant="outline" size="lg" onClick={loadDemoDataset}>
-                Ver ejemplo de demostración
-              </Button>
-            </div>
-          }
-        />
-      </>
-    );
-  }
+  if (!report) return <><PageHeader title="Informes" description="Reporte de calidad del dataset." /><EmptyState icon={Database} title="Sin informe disponible" description="Carga un dataset para generar el informe de calidad." action={<div className="flex flex-wrap justify-center gap-2"><Button asChild><Link to="/datos">Analizar un dataset</Link></Button><Button variant="outline" onClick={loadDemoDataset}>Ver ejemplo de demostración</Button></div>} /></>;
 
-  const severity = countBySeverity(dataset.issues);
+  const exportHtml = () => {
+    const body = renderToStaticMarkup(<ReportDocument report={report} />);
+    downloadText(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe de calidad · DataClean AI</title><style>${reportCss}</style></head><body>${body}</body></html>`, "informe-dataclean.html", "text/html;charset=utf-8");
+    registerOperation({ kind: "informe", label: "Informe HTML exportado", detail: `${report.current.name} · calidad ${report.before.score} → ${report.after.score}/100` });
+  };
 
-  return (
-    <>
-      <PageHeader
-        title="Informes"
-        description="Resumen del estado de calidad del dataset activo."
-        action={
-          <Button size="sm" variant="outline" disabled>
-            <Download className="size-4" aria-hidden />
-            Exportar (próximamente)
-          </Button>
-        }
-      />
-
-      {dataset.isDemo ? <DemoNotice text="Este informe corresponde a un conjunto de demostración y no debe compartirse como resultado real." /> : null}
-
-      <GlassCard>
-        <CardHeading
-          title={dataset.name}
-          meta={`${dataset.source} · ${formatDateTime(dataset.loadedAt)}`}
-          action={
-            <StatusBadge tone={dataset.qualityScore >= 70 ? "success" : "warning"}>
-              {scoreLabel(dataset.qualityScore)}
-            </StatusBadge>
-          }
-        />
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <MetricCard label="Score" value={String(dataset.qualityScore)} />
-          <MetricCard label="Filas" value={formatNumber(dataset.rows)} />
-          <MetricCard label="Faltantes" value={formatPct(dataset.missingPct)} tone="warning" />
-          <MetricCard
-            label="Duplicados"
-            value={formatNumber(dataset.duplicates)}
-            tone={dataset.duplicates > 0 ? "danger" : "success"}
-          />
-        </div>
-      </GlassCard>
-
-      <GlassCard>
-        <CardHeading title="Resumen de incidencias" />
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <MetricCard label="Críticas" value={String(severity.critico)} tone="danger" />
-          <MetricCard label="Avisos" value={String(severity.aviso)} tone="warning" />
-          <MetricCard label="Correctas" value={String(severity.ok)} tone="success" />
-        </div>
-      </GlassCard>
-
-      <GlassCard>
-        <CardHeading title="Trazabilidad" meta={`${history.length} operación(es) registradas`} />
-        <ul className="mt-3 space-y-2">
-          {history.length === 0 ? (
-            <li className="rounded-xl glass-inset p-4 text-center text-[12px] text-muted-foreground ring-1 ring-white/50">
-              Sin operaciones registradas.
-            </li>
-          ) : (
-            history.slice(0, 5).map((op) => (
-              <li
-                key={op.id}
-                className="flex items-center justify-between gap-3 rounded-xl glass-inset p-3 ring-1 ring-white/50"
-              >
-                <div className="min-w-0">
-                  <p className="text-[13px] font-medium">{op.label}</p>
-                  <p className="text-[11px] text-muted-foreground">{op.detail}</p>
-                </div>
-                <span className="shrink-0 text-[11px] text-muted-foreground">
-                  {formatDateTime(op.at)}
-                </span>
-              </li>
-            ))
-          )}
-        </ul>
-      </GlassCard>
-
-      <ModuleStub
-        icon={FileText}
-        title="Informes previstos"
-        items={[
-          "Exportación a PDF y HTML",
-          "Informe comparativo antes/después de la limpieza",
-          "Resumen narrativo generado con IA",
-          "Programación de envíos periódicos",
-        ]}
-      />
-    </>
-  );
+  return <>
+    <PageHeader title="Informes" description={report.current.name} action={<div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4" />Imprimir / PDF</Button><Button size="sm" onClick={exportHtml}><Download className="size-4" />Exportar HTML</Button></div>} />
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <MetricCard label="Calidad antes" value={`${report.before.score}/100`} />
+      <MetricCard label="Calidad después" value={`${report.after.score}/100`} />
+      <MetricCard label="Problemas corregidos" value={String(report.counts.corrected)} tone="success" />
+      <MetricCard label="Problemas pendientes" value={String(report.counts.pending)} tone={report.counts.pending ? "warning" : "success"} />
+    </div>
+    <ReportDocument report={report} />
+  </>;
 }
