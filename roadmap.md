@@ -4,3 +4,4 @@
 - [ ] Share validation rules across validation, reports and ML during the session.
 - [ ] Expand session history with filters, operation details and export.
 - [ ] Test reporting rules and verify the full upload → clean → validate → export flow.
+- [ ] Implement Machine Learning Advisor feasibility, target selection, comparable confirmed experiments, interpretation and new-record predictions with leakage safeguards.
