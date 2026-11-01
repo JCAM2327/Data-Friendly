@@ -3,6 +3,7 @@ import type { DatasetSummary, OperationRecord } from "@/lib/types";
 import type { RawTable } from "@/services/file-parser";
 import { createDemoTable } from "@/services/dataset-service";
 import { profileTable } from "@/services/profiling-service";
+import { suggestRules, type ValidationRule } from "@/services/validation-service";
 
 export interface TableMeta {
   name: string;
@@ -48,6 +49,9 @@ interface DatasetContextValue {
   /** Problemas que el usuario eligió corregir. */
   plannedIssueIds: string[];
   togglePlanned: (id: string) => void;
+  validationRules: ValidationRule[];
+  addValidationRule: (rule: ValidationRule) => void;
+  removeValidationRule: (id: string) => void;
 }
 
 const DatasetContext = createContext<DatasetContextValue | null>(null);
@@ -57,6 +61,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
   const [steps, setSteps] = useState<CleaningStep[]>([]);
   const [history, setHistory] = useState<OperationRecord[]>([]);
   const [plannedIssueIds, setPlanned] = useState<string[]>([]);
+  const [validationRules, setValidationRules] = useState<ValidationRule[]>([]);
 
   const togglePlanned = useCallback(
     (id: string) => setPlanned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id])),
@@ -80,7 +85,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     () => (original ? profileTable(original.table, original.meta) : null),
     [original],
   );
-  const currentTable = steps.length ? steps[steps.length - 1]!.table : (original?.table ?? null);
+  const currentTable = steps.at(-1)?.table ?? original?.table ?? null;
   const dataset = useMemo(() => {
     if (!original || !currentTable) return null;
     if (!steps.length) return originalDataset;
@@ -93,6 +98,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       setSteps([]);
       setPlanned([]);
       const s = profileTable(table, m);
+      setValidationRules(suggestRules(s));
       registerOperation({
         kind: "carga",
         label: m.isDemo ? "Dataset de demostración cargado" : "Dataset cargado",
@@ -119,6 +125,8 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
   const clearDataset = useCallback(() => {
     setOriginal(null);
     setSteps([]);
+    setPlanned([]);
+    setValidationRules([]);
     registerOperation({ kind: "carga", label: "Dataset descartado", detail: "Se limpió la sesión de trabajo" });
   }, [registerOperation]);
 
@@ -145,6 +153,18 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     });
   }, [steps, registerOperation]);
 
+  const addValidationRule = useCallback((rule: ValidationRule) => {
+    setValidationRules((prev) => [...prev, rule]);
+    registerOperation({ kind: "validacion", label: "Regla añadida", detail: `${rule.column} · ${rule.kind}${rule.critical ? " · crítica" : ""}` });
+  }, [registerOperation]);
+
+  const removeValidationRule = useCallback((id: string) => {
+    const rule = validationRules.find((r) => r.id === id);
+    if (!rule) return;
+    setValidationRules((prev) => prev.filter((r) => r.id !== id));
+    registerOperation({ kind: "validacion", label: "Regla eliminada", detail: `${rule.column} · ${rule.kind}` });
+  }, [validationRules, registerOperation]);
+
   const value = useMemo(
     () => ({
       dataset,
@@ -163,8 +183,11 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       profile,
       plannedIssueIds,
       togglePlanned,
+      validationRules,
+      addValidationRule,
+      removeValidationRule,
     }),
-    [dataset, originalDataset, original, currentTable, steps, history, loadDemoDataset, loadDataset, clearDataset, registerOperation, applyStep, undoLastStep, profile, plannedIssueIds, togglePlanned],
+    [dataset, originalDataset, original, currentTable, steps, history, loadDemoDataset, loadDataset, clearDataset, registerOperation, applyStep, undoLastStep, profile, plannedIssueIds, togglePlanned, validationRules, addValidationRule, removeValidationRule],
   );
 
   return <DatasetContext.Provider value={value}>{children}</DatasetContext.Provider>;

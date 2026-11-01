@@ -25,6 +25,8 @@ export const Route = createFileRoute("/calidad")({
         content: "Diagnóstico automático de calidad: problemas detectados y perfil por columna.",
       },
       { property: "og:title", content: "Calidad · DataClean AI" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Problemas, severidad y perfilado estadístico columna a columna.",
