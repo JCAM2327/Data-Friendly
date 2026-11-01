@@ -7,7 +7,7 @@
 import type { DatasetSummary, MlRecommendation } from "@/lib/types";
 import type { RawTable } from "./file-parser";
 import type { EdaResult } from "./eda-service";
-import { assessQuality, suggestRules, type QualityAssessment, type Readiness } from "./validation-service";
+import { assessQuality, suggestRules, type QualityAssessment, type Readiness, type ValidationRule } from "./validation-service";
 
 export interface MlPlan {
   recommendations: MlRecommendation[];
@@ -43,8 +43,8 @@ export function targetCandidates(ds: DatasetSummary): MlPlan["targetCandidates"]
   return out.slice(0, 8);
 }
 
-export function buildMlPlan(ds: DatasetSummary, t: RawTable, eda: EdaResult): MlPlan {
-  const assessment = assessQuality(t, ds, suggestRules(ds));
+export function buildMlPlan(ds: DatasetSummary, t: RawTable, eda: EdaResult, rules: ValidationRule[] = suggestRules(ds)): MlPlan {
+  const assessment = assessQuality(t, ds, rules);
   const recs: MlRecommendation[] = [];
   const targets = targetCandidates(ds);
   const clsTargets = targets.filter((x) => x.kind === "clasificacion");

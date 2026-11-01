@@ -23,6 +23,8 @@ export const Route = createFileRoute("/ml")({
         content: "Técnicas de Machine Learning recomendadas según el perfil, el EDA y la validación del dataset.",
       },
       { property: "og:title", content: "Machine Learning · DataClean AI" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Recomendaciones derivadas del perfilado real, con requisitos previos al modelado.",
@@ -50,7 +52,7 @@ function fitTone(score: number): BadgeTone {
 }
 
 function MlPage() {
-  const { dataset, currentTable, loadDemoDataset } = useDataset();
+  const { dataset, currentTable, loadDemoDataset, validationRules } = useDataset();
 
   if (!dataset || !currentTable) {
     return (
@@ -79,7 +81,7 @@ function MlPage() {
   }
 
   const eda = runEda(currentTable, dataset);
-  const plan = buildMlPlan(dataset, currentTable, eda);
+  const plan = buildMlPlan(dataset, currentTable, eda, validationRules);
 
   return (
     <>

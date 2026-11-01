@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Database, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard, CardHeading } from "@/components/common/GlassCard";
@@ -14,7 +14,6 @@ import {
   assessQuality,
   readinessLabel,
   ruleKindLabels,
-  suggestRules,
   type Readiness,
   type RuleKind,
   type ValidationRule,
@@ -38,16 +37,7 @@ const readinessTone: Record<Readiness, BadgeTone> = { listo: "success", revision
 const selectCls = "h-9 rounded-lg border border-input bg-background/70 px-2 text-[12px]";
 
 function ValidacionPage() {
-  const { dataset, originalDataset, originalTable, currentTable, loadDemoDataset } = useDataset();
-  const [rules, setRules] = useState<ValidationRule[]>([]);
-  const [seededFor, setSeededFor] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (originalDataset && seededFor !== originalDataset.id + originalDataset.loadedAt) {
-      setRules(suggestRules(originalDataset));
-      setSeededFor(originalDataset.id + originalDataset.loadedAt);
-    }
-  }, [originalDataset, seededFor]);
+  const { dataset, originalDataset, originalTable, currentTable, loadDemoDataset, validationRules: rules, addValidationRule, removeValidationRule } = useDataset();
 
   const after = useMemo(
     () => (dataset && currentTable ? assessQuality(currentTable, dataset, rules) : null),
@@ -148,7 +138,7 @@ function ValidacionPage() {
           title="Reglas de validación"
           meta={`${passed.length} cumplidas · ${failed.length} incumplidas · propuestas automáticamente según los nombres de columna`}
         />
-        <RuleBuilder columns={columns} onAdd={(r) => setRules((p) => [...p, r])} />
+        <RuleBuilder columns={columns} onAdd={addValidationRule} />
         <div className="mt-3 overflow-x-auto rounded-xl ring-1 ring-white/50">
           <table className="w-full min-w-[620px] border-collapse text-left">
             <thead>
@@ -176,7 +166,7 @@ function ValidacionPage() {
                   <td className="px-3 py-2 text-right font-mono text-[11px]">{formatNumber(r.failed)}</td>
                   <td className="px-3 py-2 text-right font-mono text-[11px] font-semibold">{r.compliance}%</td>
                   <td className="px-3 py-2 text-right">
-                    <Button size="icon" variant="ghost" aria-label="Eliminar regla" onClick={() => setRules((p) => p.filter((x) => x.id !== r.rule.id))}>
+                    <Button size="icon" variant="ghost" aria-label="Eliminar regla" onClick={() => removeValidationRule(r.rule.id)}>
                       <Trash2 className="size-3.5" />
                     </Button>
                   </td>
