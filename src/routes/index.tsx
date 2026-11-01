@@ -21,6 +21,8 @@ export const Route = createFileRoute("/")({
           "Resumen de calidad del dataset activo: filas, columnas, faltantes, duplicados y Data Quality Score.",
       },
       { property: "og:title", content: "Dashboard · DataClean AI" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Estado general y métricas de calidad del dataset activo.",

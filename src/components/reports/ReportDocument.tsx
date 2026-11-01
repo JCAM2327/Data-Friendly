@@ -40,9 +40,9 @@ export function ReportDocument({ report: r }: { report: DatasetReport }) {
 
     <section>
       <h3>Diagnóstico original</h3>
-      <ReportTable headings={["Problema", "Columna", "Severidad", "Afectados", "Descripción"]} rows={r.original.issues.map((i) => [i.title, i.column ?? "Todas", severityLabel(i.severity), i.affectedRows, i.detail])} />
+      <ReportTable headings={["Problema", "Columna", "Severidad", "Afectados", "Descripción"]} rows={r.original.issues.map((i) => [i.title, i.column ?? "Todas", severityLabel[i.severity], i.affectedRows, i.detail])} />
       <h3>Problemas pendientes</h3>
-      <ReportTable headings={["Problema", "Columna", "Severidad", "Afectados", "Recomendación"]} rows={r.current.issues.map((i) => [i.title, i.column ?? "Todas", severityLabel(i.severity), i.affectedRows, i.suggestedFix ?? i.detail])} />
+      <ReportTable headings={["Problema", "Columna", "Severidad", "Afectados", "Recomendación"]} rows={r.current.issues.map((i) => [i.title, i.column ?? "Todas", severityLabel[i.severity], i.affectedRows, i.suggestedFix ?? i.detail])} />
     </section>
 
     <section>

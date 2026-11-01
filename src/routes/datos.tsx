@@ -22,6 +22,8 @@ export const Route = createFileRoute("/datos")({
         content: "Carga archivos o conecta fuentes de datos para iniciar el diagnóstico de calidad.",
       },
       { property: "og:title", content: "Datos · DataClean AI" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Fuentes y formatos soportados para cargar tu conjunto de datos.",

@@ -24,6 +24,8 @@ export const Route = createFileRoute("/limpieza")({
       { title: "Limpieza · DataClean AI" },
       { name: "description", content: "Limpieza controlada: vista previa de cada cambio antes de confirmarlo." },
       { property: "og:title", content: "Limpieza · DataClean AI" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:description", content: "Revisa cada corrección antes de aplicarla sobre el dataset activo." },
     ],
   }),
