@@ -24,6 +24,8 @@ def analyze(
     onehot_drop_first: bool = False,
     drop_low_variance_threshold: float | None = None,
     drop_high_correlation_threshold: float | None = None,
+    importance_threshold: float | None = None,
+    drop_low_importance: bool = False,
 ) -> tuple[dict, pd.DataFrame | None]:
     df = load_dataframe(path)
     return analyze_frame(
@@ -37,6 +39,8 @@ def analyze(
         onehot_drop_first=onehot_drop_first,
         drop_low_variance_threshold=drop_low_variance_threshold,
         drop_high_correlation_threshold=drop_high_correlation_threshold,
+        importance_threshold=importance_threshold,
+        drop_low_importance=drop_low_importance,
     )
 
 
@@ -52,6 +56,7 @@ def analyze_frame(
     drop_low_variance_threshold: float | None = None,
     drop_high_correlation_threshold: float | None = None,
     importance_threshold: float | None = None,
+    drop_low_importance: bool = False,
 ) -> tuple[dict, pd.DataFrame | None]:
     profile = profile_dataframe(df)
     issues = detect_issues(df)
@@ -110,8 +115,60 @@ def analyze_frame(
     report["modeling"] = compare_models(
         modeling_frame, modeling_target, importance_threshold=importance_threshold
     )
+    # Optionally incorporate low-importance candidates as drop steps in the plan
+    if (
+        drop_low_importance
+        and importance_threshold is not None
+        and importance_threshold > 0
+        and report["modeling"].get("low_importance_candidates")
+    ):
+        candidates = report["modeling"]["low_importance_candidates"]
+        current_cols = set(modeling_frame.columns)
+        added = False
+        for cand in candidates:
+            feat = cand["feature"]
+            if feat in current_cols and feat not in {s.get("column") for s in plan if s.get("action") == "drop_column"}:
+                plan.append({
+                    "column": feat,
+                    "action": "drop_column",
+                    "justification": (
+                        f"La columna '{feat}' presenta importancia máxima "
+                        f"{cand['max_importance']:.6f} inferior al umbral {importance_threshold}."
+                    ),
+                    "params": {
+                        "reason": "low_importance",
+                        "max_importance": cand["max_importance"],
+                        "threshold": importance_threshold,
+                    },
+                })
+                added = True
+        if added and apply and cleaned is not None:
+            # Re-apply the full updated plan on the original frame
+            cleaned = apply_plan(df, plan)
+            after_profile = profile_dataframe(cleaned)
+            after_issues = detect_issues(cleaned)
+            report["applied"] = {
+                "profile": after_profile,
+                "issues": after_issues,
+                "quality_delta": quality_delta(
+                    {
+                        "rows": profile["rows"],
+                        "columns": profile["columns"],
+                        "duplicate_rows": profile["duplicate_rows"],
+                        "issue_count": len(issues),
+                    },
+                    {
+                        "rows": after_profile["rows"],
+                        "columns": after_profile["columns"],
+                        "duplicate_rows": after_profile["duplicate_rows"],
+                        "issue_count": len(after_issues),
+                    },
+                ),
+                "target": detect_target(cleaned, target=target or target_report.get("column")),
+            }
     report["summary"]["model_status"] = report["modeling"]["status"]
     report["summary"]["model_winner"] = report["modeling"]["winner"]
+    report["summary"]["plan_steps"] = len(plan)
     return report, cleaned
 
 
@@ -173,6 +230,11 @@ def main() -> None:
         default=None,
         help="Umbral de importancia: features cuya importancia máxima en modelos no baseline sea inferior se reportan como candidatos a exclusión",
     )
+    parser.add_argument(
+        "--drop-low-importance",
+        action="store_true",
+        help="Incluir automáticamente en el plan de limpieza las columnas cuya importancia máxima sea inferior al umbral (requiere --importance-threshold)",
+    )
     args = parser.parse_args()
     strategies = {}
     if args.impute_numeric:
@@ -198,6 +260,7 @@ def main() -> None:
         drop_low_variance_threshold=args.drop_low_variance_threshold,
         drop_high_correlation_threshold=args.drop_high_correlation_threshold,
         importance_threshold=args.importance_threshold,
+        drop_low_importance=args.drop_low_importance,
     )
     text = json.dumps(report, ensure_ascii=False, indent=2)
     if args.out:

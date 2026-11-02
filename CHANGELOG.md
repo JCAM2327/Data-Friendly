@@ -7,6 +7,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-11-02
+
+### Añadido
+- Parámetro opcional `drop_low_importance` (CLI `--drop-low-importance`, API `drop_low_importance`) que, cuando es verdadero y se proporciona `importance_threshold`, incorpora al plan de limpieza pasos `drop_column` con razón `low_importance` para aquellas columnas cuya importancia máxima observada es inferior al umbral.
+- Los pasos se añaden tras el cálculo del informe de modelado y, si el plan se aplica, se reejecuta sobre el frame original.
+- Prueba unitaria `test_drop_low_importance_adds_plan_steps`.
+
+### Cambiado
+- Versión del paquete y de la API a 0.24.0.
+- Descripción del paquete, README y esquema OpenAPI actualizados.
+- ROADMAP: nueva Fase 14 — Integración de baja importancia en el plan, con el ítem marcado como completado.
+
 ## [0.23.0] — 2026-11-01
 
 ### Añadido

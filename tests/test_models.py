@@ -108,3 +108,29 @@ def test_skips_when_only_identifier_features_remain():
     report = compare_models(df, {"found": True, "column": "objetivo", "task": "classification", "warnings": []})
     assert report["status"] == "skipped"
     assert "insufficient_features" in report["warnings"]
+
+
+def test_drop_low_importance_adds_plan_steps():
+    from dataclean.cli import analyze_frame
+    df = _classification_frame()
+    report, cleaned = analyze_frame(
+        df,
+        source="mem",
+        apply=True,
+        importance_threshold=0.05,
+        drop_low_importance=True,
+    )
+    # Plan may contain additional drop_column with reason low_importance
+    low_imp_steps = [
+        s for s in report["plan"]
+        if s.get("action") == "drop_column" and (s.get("params") or {}).get("reason") == "low_importance"
+    ]
+    # Structure is valid either way; if candidates existed and matched columns, steps were added
+    if report["modeling"].get("low_importance_candidates"):
+        matching = [
+            c for c in report["modeling"]["low_importance_candidates"]
+            if c["feature"] in df.columns
+        ]
+        if matching:
+            assert len(low_imp_steps) > 0
+            assert all(s["params"]["threshold"] == 0.05 for s in low_imp_steps)

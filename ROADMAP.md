@@ -75,3 +75,8 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 ## Fase 13 — Candidatos por umbral de importancia
 
 - [x] Parámetro opcional `importance_threshold` para reportar features de baja importancia máxima como candidatos a exclusión en el informe de modelado
+
+
+## Fase 14 — Integración de baja importancia en el plan
+
+- [x] Inclusión opcional de candidatos de baja importancia como acciones `drop_column` (razón `low_importance`) en el plan de limpieza mediante el parámetro `drop_low_importance`

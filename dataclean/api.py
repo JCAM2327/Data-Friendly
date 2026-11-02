@@ -118,6 +118,10 @@ async def upload_dataset(
         None,
         description="Umbral de importancia: features cuya importancia máxima en modelos no baseline sea inferior se reportan como candidatos a exclusión",
     ),
+    drop_low_importance: bool = Query(
+        False,
+        description="Incluir automáticamente en el plan de limpieza las columnas cuya importancia máxima sea inferior al umbral (requiere importance_threshold)",
+    ),
 ) -> UploadResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Nombre de archivo requerido")
@@ -141,6 +145,7 @@ async def upload_dataset(
         drop_low_variance_threshold=drop_low_variance_threshold,
         drop_high_correlation_threshold=drop_high_correlation_threshold,
         importance_threshold=importance_threshold,
+        drop_low_importance=drop_low_importance,
     )
     record = store.create(user_id, file.filename, df, report)
     return UploadResponse(
