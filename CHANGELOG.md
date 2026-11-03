@@ -7,6 +7,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+
+## [0.25.0] — 2026-11-03
+
+### Añadido
+- Cuando se activan exclusiones por baja importancia (`drop_low_importance`) y se aplica el plan, el informe de modelado se actualiza reejecutando la comparación de modelos sobre el dataset limpio resultante (tras las exclusiones).
+- Prueba unitaria que verifica la actualización del informe de modelado.
+
+### Cambiado
+- Versión del paquete y de la API a 0.25.0.
+- Descripción del paquete, README y esquema OpenAPI actualizados.
+- ROADMAP: nueva Fase 15 — Actualización del informe de modelado tras exclusiones por baja importancia, con el ítem marcado como completado.
+
 ## [0.24.0] — 2026-11-02
 
 ### Añadido
