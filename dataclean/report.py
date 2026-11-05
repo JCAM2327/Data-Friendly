@@ -151,6 +151,22 @@ def _modeling_section(modeling: dict[str, Any]) -> str:
                     "</tr>"
                 )
             html += _html_table(headers, body)
+    # Aggregated importances
+    agg = modeling.get("aggregated_importances")
+    if agg:
+        html += "<h3>Importancias agregadas (máximo y media entre modelos)</h3>"
+        headers = ["Feature", "Máximo", "Media", "Modelos"]
+        body = []
+        for item in agg[:15]:
+            body.append(
+                "<tr>"
+                f"<td>{escape(str(item.get('feature') or ''))}</td>"
+                f"<td>{escape(str(item.get('max_importance') or ''))}</td>"
+                f"<td>{escape(str(item.get('mean_importance') or ''))}</td>"
+                f"<td>{escape(str(item.get('model_count') or ''))}</td>"
+                "</tr>"
+            )
+        html += _html_table(headers, body)
     return html
 
 

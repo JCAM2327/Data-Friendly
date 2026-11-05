@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Any
 
 import numpy as np
@@ -37,7 +38,8 @@ def compare_models(
     and a depth-limited tree. Metrics, warnings and feature importances (when
     available) are part of the same report. If importance_threshold is provided,
     low_importance_candidates lists features whose maximum importance across
-    non-baseline models is below the threshold.
+    non-baseline models is below the threshold. Aggregated importances (max and
+    mean across non-baseline models) are also computed when available.
     """
     if not target_report.get("found"):
         return _skipped(
@@ -128,6 +130,7 @@ def compare_models(
     winner = _winner(fitted, primary, higher_is_better)
     lift = _lift(winner, baseline, primary, higher_is_better)
     low_importance = _low_importance_candidates(models, importance_threshold)
+    aggregated = _aggregate_importances(models)
     return {
         "status": "compared",
         "task": task,
@@ -152,6 +155,7 @@ def compare_models(
         "warnings": _unique(warnings),
         "rationale": _rationale(task, baseline["name"], winner["name"], lift, primary),
         "low_importance_candidates": low_importance,
+        "aggregated_importances": aggregated,
     }
 
 
@@ -336,6 +340,28 @@ def _low_importance_candidates(
     return candidates
 
 
+def _aggregate_importances(models: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
+    """Compute max and mean importance across non-baseline models for each feature."""
+    if not models:
+        return None
+    stats: dict[str, list[float]] = defaultdict(list)
+    for model in models:
+        for item in model.get("feature_importances") or []:
+            stats[item["feature"]].append(float(item["importance"]))
+    if not stats:
+        return None
+    agg = []
+    for feat, imps in stats.items():
+        agg.append({
+            "feature": feat,
+            "max_importance": round(max(imps), 6),
+            "mean_importance": round(sum(imps) / len(imps), 6),
+            "model_count": len(imps),
+        })
+    agg.sort(key=lambda x: -x["max_importance"])
+    return agg
+
+
 def _skipped(rationale: str, warnings: list[str], target_report: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": "skipped",
@@ -355,6 +381,7 @@ def _skipped(rationale: str, warnings: list[str], target_report: dict[str, Any])
         "warnings": warnings,
         "rationale": rationale,
         "low_importance_candidates": None,
+        "aggregated_importances": None,
     }
 
 
