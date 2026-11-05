@@ -89,3 +89,7 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 ## Fase 16 — Persistencia y exposición explícita de importancias
 
 - [x] Persistencia de las importancias calculadas dentro del informe almacenado y endpoint dedicado `GET /datasets/{id}/importances` para su consulta directa
+
+## Fase 17 — Agregación de importancias de variables
+
+- [x] Cálculo y exposición de importancias agregadas (máximo y media entre modelos no baseline) en el informe de modelado, endpoint de importancias e informe HTML

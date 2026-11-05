@@ -7,6 +7,19 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-11-05
+
+### Añadido
+- Agregación de importancias de variables: campo `aggregated_importances` en el informe de modelado con máximo, media y conteo de modelos para cada feature (calculado sobre modelos no baseline).
+- Inclusión de la agregación en el endpoint `GET /datasets/{id}/importances`.
+- Visualización de la tabla de importancias agregadas (top 15) en el informe HTML.
+- Pruebas unitarias y de API que verifican la estructura y presencia de las importancias agregadas.
+
+### Cambiado
+- Versión del paquete y de la API a 0.27.0.
+- Descripción del paquete, README y esquema OpenAPI actualizados.
+- ROADMAP: nueva Fase 17 — Agregación de importancias de variables, con el ítem marcado como completado.
+
 ## [0.26.0] — 2026-11-04
 
 ### Añadido

@@ -1,6 +1,6 @@
 # DataClean AI
 
-Herramienta para perfilar datasets tabulares, detectar issues de calidad, generar y aplicar planes de limpieza (incluye clipping de outliers IQR, estrategias de imputación configurables, estandarización opcional de columnas numéricas, codificación opcional de variables categóricas con soporte drop_first, exclusión opcional de columnas numéricas de baja varianza y exclusión opcional de columnas numéricas altamente correlacionadas), detectar variable objetivo, comparar modelos baseline e informar importancia de variables (con candidatos a exclusión por umbral de importancia opcional y actualización del informe de modelado tras exclusiones por baja importancia).
+Herramienta para perfilar datasets tabulares, detectar issues de calidad, generar y aplicar planes de limpieza (incluye clipping de outliers IQR, estrategias de imputación configurables, estandarización opcional de columnas numéricas, codificación opcional de variables categóricas con soporte drop_first, exclusión opcional de columnas numéricas de baja varianza y exclusión opcional de columnas numéricas altamente correlacionadas), detectar variable objetivo, comparar modelos baseline e informar importancia de variables (con candidatos a exclusión por umbral de importancia opcional, agregación de máximo/media entre modelos y actualización del informe de modelado tras exclusiones por baja importancia).
 
 Soporta carga de CSV, Excel (.xlsx/.xls) y Parquet.
 
@@ -29,10 +29,10 @@ Servidor FastAPI con aislamiento de informes por usuario y documentación OpenAP
 - `GET /datasets/{id}` — consulta el registro
 - `POST /datasets/{id}/accept` — aplica el plan de limpieza
 - `GET /datasets/{id}/report.html` — informe HTML autocontenido
-- `GET /datasets/{id}/importances` — importancias de variables persistidas de los modelos no baseline
+- `GET /datasets/{id}/importances` — importancias de variables persistidas de los modelos no baseline (incluye agregación)
 
 ```bash
 uvicorn dataclean.api:app --reload
 ```
 
-Versión actual: 0.26.0
+Versión actual: 0.27.0
