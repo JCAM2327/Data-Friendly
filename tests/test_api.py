@@ -35,3 +35,7 @@ def test_upload_and_get_importances():
         assert "feature_importances" in model
         assert isinstance(model["feature_importances"], list)
         assert len(model["feature_importances"]) > 0
+    assert "aggregated_importances" in imp
+    assert isinstance(imp["aggregated_importances"], list)
+    if imp["aggregated_importances"]:
+        assert all("feature" in a and "max_importance" in a for a in imp["aggregated_importances"])

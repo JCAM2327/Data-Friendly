@@ -22,7 +22,7 @@ app = FastAPI(
     title="DataClean AI",
     description=(
         "Plataforma para perfilar datasets tabulares, detectar problemas de calidad, "
-        "generar y aplicar planes de limpieza (incluye clipping de outliers IQR, estrategias de imputación configurables, estandarización opcional de columnas numéricas, codificación opcional de variables categóricas con soporte drop_first, exclusión opcional de columnas numéricas de baja varianza y exclusión opcional de columnas numéricas altamente correlacionadas), detectar variable objetivo, comparar modelos baseline e informar importancia de variables (con candidatos a exclusión por umbral de importancia opcional y exposición explícita de las importancias calculadas). "
+        "generar y aplicar planes de limpieza (incluye clipping de outliers IQR, estrategias de imputación configurables, estandarización opcional de columnas numéricas, codificación opcional de variables categóricas con soporte drop_first, exclusión opcional de columnas numéricas de baja varianza y exclusión opcional de columnas numéricas altamente correlacionadas), detectar variable objetivo, comparar modelos baseline e informar importancia de variables (con candidatos a exclusión por umbral de importancia opcional, agregación de importancias máximo/media entre modelos y exposición explícita de las importancias calculadas). "
         "Soporta carga de CSV, Excel (.xlsx/.xls) y Parquet. "
         "Los informes se aíslan por usuario mediante la cabecera obligatoria `X-User-Id`. "
         "Si se configura la variable de entorno `DATACLEAN_API_KEY`, se exige adicionalmente la cabecera `X-API-Key`. "
@@ -32,7 +32,7 @@ app = FastAPI(
         "El parámetro opcional `drop_low_variance_threshold` excluye columnas numéricas de baja varianza. "
         "El parámetro opcional `drop_high_correlation_threshold` excluye columnas numéricas altamente correlacionadas."
     ),
-    version="0.26.0",
+    version="0.27.0",
     openapi_tags=[
         {"name": "Datasets", "description": "Carga, consulta y gestión de datasets y sus informes."},
         {"name": "Informes", "description": "Exportación de informes HTML y descarga de datos limpios."},
@@ -244,7 +244,7 @@ def download_cleaned(dataset_id: str, user_id: str = Depends(get_user_id)) -> Fi
     "/datasets/{dataset_id}/importances",
     tags=["Informes"],
     summary="Importancias de variables",
-    description="Devuelve las importancias de variables calculadas en la comparación de modelos no baseline, persistidas en el informe.",
+    description="Devuelve las importancias de variables calculadas en la comparación de modelos no baseline, persistidas en el informe, incluyendo la agregación de máximo y media entre modelos.",
     responses={404: {"description": "Dataset no encontrado o sin informe de modelado"}},
 )
 def get_feature_importances(dataset_id: str, user_id: str = Depends(get_user_id)) -> dict[str, Any]:
@@ -267,6 +267,7 @@ def get_feature_importances(dataset_id: str, user_id: str = Depends(get_user_id)
         "column": modeling.get("column"),
         "models": models_imp,
         "low_importance_candidates": modeling.get("low_importance_candidates"),
+        "aggregated_importances": modeling.get("aggregated_importances"),
     }
 
 

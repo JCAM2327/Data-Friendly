@@ -38,6 +38,18 @@ def test_classification_compares_majority_baseline_and_two_models():
         assert isinstance(model["feature_importances"], list)
         assert len(model["feature_importances"]) > 0
         assert all("feature" in item and "importance" in item for item in model["feature_importances"])
+    # Aggregated importances
+    agg = report.get("aggregated_importances")
+    assert agg is not None
+    assert isinstance(agg, list)
+    assert len(agg) > 0
+    for item in agg:
+        assert "feature" in item
+        assert "max_importance" in item
+        assert "mean_importance" in item
+        assert "model_count" in item
+        assert item["model_count"] >= 1
+    assert agg == sorted(agg, key=lambda x: -x["max_importance"])
 
 
 def test_importance_threshold_reports_candidates():
@@ -76,6 +88,7 @@ def test_regression_compares_mean_baseline():
     for model in report["models"]:
         assert "feature_importances" in model
         assert len(model["feature_importances"]) > 0
+    assert report.get("aggregated_importances") is not None
 
 
 def test_skips_without_usable_target():
@@ -85,6 +98,7 @@ def test_skips_without_usable_target():
     assert report["models"] == []
     assert report["baseline"] is None
     assert "target_not_found" in report["warnings"]
+    assert report.get("aggregated_importances") is None
 
 
 def test_metrics_report_keeps_small_sample_and_imbalance_warnings():
