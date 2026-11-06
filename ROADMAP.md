@@ -93,3 +93,7 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 ## Fase 17 — Agregación de importancias de variables
 
 - [x] Cálculo y exposición de importancias agregadas (máximo y media entre modelos no baseline) en el informe de modelado, endpoint de importancias e informe HTML
+
+## Fase 18 — Visualización de importancias agregadas
+
+- [x] Barras horizontales CSS de la importancia máxima agregada (top 15) en el informe HTML autocontenido
