@@ -35,6 +35,11 @@ def render_report_html(record: dict[str, Any]) -> str:
         "h1,h2{color:#0f172a}table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid #e2e8f0;padding:0.4rem 0.6rem;text-align:left}th{background:#f1f5f9}",
         ".meta{color:#475569;font-size:0.9rem}.badge{display:inline-block;padding:0.1rem 0.5rem;border-radius:999px;font-size:0.8rem;background:#e2e8f0}",
         ".high{background:#fee2e2;color:#991b1b}.critical{background:#fecaca;color:#7f1d1d}.medium{background:#fef3c7;color:#92400e}.low{background:#dcfce7;color:#166534}",
+        ".bar-row{display:flex;align-items:center;margin:0.3rem 0;font-size:0.85rem}",
+        ".bar-label{width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+        ".bar-track{flex:1;background:#e2e8f0;height:1.2rem;border-radius:4px;overflow:hidden;margin:0 0.5rem}",
+        ".bar{background:#3b82f6;height:100%;border-radius:4px}",
+        ".bar-value{width:15%;text-align:right;font-variant-numeric:tabular-nums}",
         "</style>",
         "</head>",
         "<body>",
@@ -167,6 +172,22 @@ def _modeling_section(modeling: dict[str, Any]) -> str:
                 "</tr>"
             )
         html += _html_table(headers, body)
+        # Visualización de barras (máximo)
+        max_val = max((float(item.get("max_importance") or 0) for item in agg[:15]), default=1.0) or 1.0
+        bars = []
+        for item in agg[:15]:
+            feat = escape(str(item.get("feature") or ""))
+            val = float(item.get("max_importance") or 0)
+            pct = min(100.0, (val / max_val) * 100.0)
+            bars.append(
+                f'<div class="bar-row">'
+                f'<div class="bar-label" title="{feat}">{feat}</div>'
+                f'<div class="bar-track"><div class="bar" style="width:{pct:.1f}%"></div></div>'
+                f'<div class="bar-value">{val:.4f}</div>'
+                f'</div>'
+            )
+        if bars:
+            html += "<h4>Visualización (importancia máxima)</h4>" + "".join(bars)
     return html
 
 
