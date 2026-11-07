@@ -1,220 +1,56 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Brain, Database, AlertTriangle, Target, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { GlassCard, CardHeading } from "@/components/common/GlassCard";
-import { PageHeader } from "@/components/common/PageHeader";
-import { EmptyState } from "@/components/common/EmptyState";
-import { DemoNotice } from "@/components/common/DemoNotice";
-import { StatusBadge, type BadgeTone } from "@/components/common/StatusBadge";
-import { MetricCard } from "@/components/common/MetricCard";
-import { ModuleStub } from "@/components/common/ModuleStub";
-import { useDataset } from "@/state/dataset-store";
-import { buildMlPlan } from "@/services/ml-service";
-import { runEda } from "@/services/eda-service";
-import { readinessLabel, type Readiness } from "@/services/validation-service";
-import type { MlRecommendation } from "@/lib/types";
-
-export const Route = createFileRoute("/ml")({
-  head: () => ({
-    meta: [
-      { title: "Machine Learning · DataClean AI" },
-      {
-        name: "description",
-        content: "Técnicas de Machine Learning recomendadas según el perfil, el EDA y la validación del dataset.",
-      },
-      { property: "og:title", content: "Machine Learning · DataClean AI" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      {
-        property: "og:description",
-        content: "Recomendaciones derivadas del perfilado real, con requisitos previos al modelado.",
-      },
-    ],
-  }),
-  component: MlPage,
-});
-
-const familyLabels: Record<MlRecommendation["family"], string> = {
-  supervisado: "Supervisado",
-  no_supervisado: "No supervisado",
-  series_temporales: "Series temporales",
-  nlp: "NLP",
-};
-
-const readinessTone: Record<Readiness, BadgeTone> = {
-  listo: "success",
-  revision: "warning",
-  no_recomendado: "danger",
-};
-
-function fitTone(score: number): BadgeTone {
-  return score >= 70 ? "success" : score >= 45 ? "warning" : "neutral";
-}
-
-function MlPage() {
-  const { dataset, currentTable, loadDemoDataset, validationRules } = useDataset();
-
-  if (!dataset || !currentTable) {
-    return (
-      <>
-        <PageHeader
-          title="Machine Learning"
-          description="Recomendaciones según el perfil de los datos."
-        />
-        <EmptyState
-          icon={Database}
-          title="Sin datos para recomendar técnicas"
-          description="Las recomendaciones se derivan del perfilado real del dataset, nunca de supuestos."
-          action={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild size="lg">
-                <Link to="/datos">Analizar un dataset</Link>
-              </Button>
-              <Button variant="outline" size="lg" onClick={loadDemoDataset}>
-                Ver ejemplo de demostración
-              </Button>
-            </div>
-          }
-        />
-      </>
-    );
-  }
-
-  const eda = runEda(currentTable, dataset);
-  const plan = buildMlPlan(dataset, currentTable, eda, validationRules);
-
-  return (
-    <>
-      <PageHeader
-        title="Machine Learning"
-        description="Técnicas aplicables según las variables detectadas, el EDA y la validación."
-        action={
-          <StatusBadge tone={readinessTone[plan.readiness]} dot>
-            {readinessLabel[plan.readiness]}
-          </StatusBadge>
-        }
-      />
-
-      {dataset.isDemo ? <DemoNotice /> : null}
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <MetricCard
-          label="Data Quality Score"
-          value={`${plan.assessment.score}/100`}
-          tone={plan.assessment.score >= 85 ? "success" : plan.assessment.score >= 60 ? "warning" : "danger"}
-        />
-        <MetricCard label="Técnicas sugeridas" value={String(plan.recommendations.length)} />
-        <MetricCard label="Objetivos candidatos" value={String(plan.targetCandidates.length)} />
-        <MetricCard
-          label="Bloqueos"
-          value={String(plan.blockers.length)}
-          tone={plan.blockers.length ? "danger" : "success"}
-        />
-      </div>
-
-      {plan.blockers.length > 0 ? (
-        <div className="flex items-start gap-3 rounded-xl bg-danger/10 p-3 ring-1 ring-danger/20">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
-          <div className="min-w-0">
-            <p className="text-[13px] font-medium">Requisitos antes de modelar</p>
-            <ul className="mt-1 space-y-0.5 text-[12px] text-muted-foreground">
-              {plan.blockers.map((b) => (
-                <li key={b}>· {b}</li>
-              ))}
-            </ul>
-            <Button asChild size="sm" variant="outline" className="mt-2">
-              <Link to="/validacion">Ir a Validación</Link>
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-start gap-3 rounded-xl bg-success/10 p-3 ring-1 ring-success/20">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-          <p className="text-[13px]">
-            El dataset supera la validación: no hay bloqueos para empezar a modelar.
-          </p>
-        </div>
-      )}
-
-      <GlassCard>
-        <CardHeading
-          title="Técnicas recomendadas"
-          meta="Ordenadas por adecuación al dataset actual"
-        />
-        <ul className="mt-3 space-y-2">
-          {plan.recommendations.length === 0 ? (
-            <li className="rounded-xl glass-inset p-4 text-center text-[12px] text-muted-foreground ring-1 ring-white/50">
-              El perfilado actual no permite sugerir técnicas.
-            </li>
-          ) : (
-            plan.recommendations.map((r) => (
-              <li key={r.id} className="rounded-xl glass-inset p-3 ring-1 ring-white/50">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium">{r.technique}</p>
-                    <p className="text-[11px] text-muted-foreground">{r.rationale}</p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <StatusBadge tone="neutral">{familyLabels[r.family]}</StatusBadge>
-                    {r.fitScore !== undefined ? (
-                      <StatusBadge tone={fitTone(r.fitScore)}>Adecuación {r.fitScore}%</StatusBadge>
-                    ) : null}
-                  </div>
-                </div>
-                {r.suggestedTarget ? (
-                  <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Target className="size-3.5 shrink-0" aria-hidden />
-                    Objetivo sugerido: <span className="font-mono font-medium">{r.suggestedTarget}</span>
-                  </p>
-                ) : null}
-                <p className="mt-2 rounded-lg bg-primary/8 px-2.5 py-1.5 text-[11px] text-muted-foreground ring-1 ring-primary/12">
-                  Requisito: {r.requirement}
-                </p>
-                {r.preparation && r.preparation.length > 0 ? (
-                  <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
-                    {r.preparation.map((p) => (
-                      <li key={p}>· {p}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </li>
-            ))
-          )}
-        </ul>
-      </GlassCard>
-
-      {plan.targetCandidates.length > 0 ? (
-        <GlassCard>
-          <CardHeading
-            title="Posibles variables objetivo"
-            meta="Columnas aptas como objetivo según su tipo y cardinalidad"
-          />
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-            {plan.targetCandidates.map((t) => (
-              <li key={t.column} className="rounded-xl glass-inset p-3 ring-1 ring-white/50">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate font-mono text-[12px] font-medium">{t.column}</p>
-                  <StatusBadge tone="info">
-                    {t.kind === "clasificacion" ? "Clasificación" : "Regresión"}
-                  </StatusBadge>
-                </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">{t.reason}</p>
-              </li>
-            ))}
-          </ul>
-        </GlassCard>
-      ) : null}
-
-      <ModuleStub
-        icon={Brain}
-        title="Modelado previsto"
-        items={[
-          "Selección de variable objetivo y partición train/test",
-          "Entrenamiento de modelos de referencia",
-          "Métricas de evaluación comparables",
-          "Explicabilidad de las predicciones",
-        ]}
-      />
-    </>
-  );
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useMemo, useState } from 'react';
+import { Database, Brain, Play, Square, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
+import { DemoNotice } from '@/components/common/DemoNotice';
+import { MetricCard } from '@/components/common/MetricCard';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { ExperimentResults } from '@/components/ml/ExperimentResults';
+import { useDataset } from '@/state/dataset-store';
+import { useMlSession } from '@/state/ml-session';
+import { assessMl, candidates, inspectFeatures, problemLabels, type Problem } from '@/services/ml-advisor';
+export const Route=createFileRoute('/ml')({head:()=>({meta:[
+  {title:'Machine Learning Advisor · DataClean AI'},
+  {name:'description',content:'Evalúa viabilidad predictiva, compara modelos con datos reales y genera predicciones exploratorias con controles de leakage.'},
+  {property:'og:title',content:'Machine Learning Advisor · DataClean AI'},
+  {property:'og:description',content:'Viabilidad, entrenamiento confirmado, comparación experimental e interpretación de modelos para el dataset limpio.'},
+  {property:'og:type',content:'website'},{name:'twitter:card',content:'summary'},
+]}),component:MlPage});
+const field='h-9 w-full rounded-md border border-input bg-background px-3 text-sm';
+function MlPage(){
+  const {dataset,currentTable,validationRules,loadDemoDataset}=useDataset();
+  const s=useMlSession();const [dialog,setDialog]=useState(false);
+  const options=useMemo(()=>dataset?candidates(dataset):[],[dataset]);
+  const analysis=useMemo(()=>dataset&&currentTable?assessMl(currentTable,dataset,validationRules,s.config):null,[dataset,currentTable,validationRules,s.config]);
+  if(!dataset||!currentTable||!analysis)return <><PageHeader title="Machine Learning Advisor"/><EmptyState icon={Database} title="Sin dataset para evaluar" description="Carga datos para evaluar su viabilidad." action={<div className="flex flex-wrap gap-2"><Button asChild><Link to="/datos">Analizar un dataset</Link></Button><Button variant="outline" onClick={loadDemoDataset}>Ver ejemplo de demostración</Button></div>}/></>;
+  const configure=(problem:Problem,target:string)=>{
+    const info=inspectFeatures(currentTable,dataset,target,s.config.groupColumn);
+    s.updateConfig({...s.config,problem,target,features:info.filter(f=>f.eligible).map(f=>f.column)});
+  };
+  const canTrain=!analysis.blockers.length&&s.confirmed&&s.purpose.trim().length>=10&&!s.busy;
+  const models=s.config.problem==='classification'?'Referencia mayoritaria, Logistic Regression, Decision Tree, Random Forest, Gradient Boosting y SVM (hasta 2.000 registros train).':s.config.problem==='regression'?'Referencia media, Linear Regression, Ridge, Lasso, Decision Tree Regressor, Random Forest Regressor y Gradient Boosting.':'K-Means, DBSCAN y Gaussian Mixture; DBSCAN se evalúa en train y no compite con modelos evaluados en test.';
+  return <>
+    <PageHeader title="Machine Learning Advisor" description={dataset.name}/>
+    {dataset.isDemo?<DemoNotice/>:null}
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><MetricCard label="Registros elegibles" value={String(analysis.usableRows)}/><MetricCard label="Variables" value={String(dataset.columns)}/><MetricCard label="Valores faltantes" value={`${dataset.missingPct}%`}/><MetricCard label="Calidad actual" value={`${analysis.quality.score}/100`}/></div>
+    <section className="space-y-3 pt-4"><h2 className="flex items-center gap-2 text-lg font-semibold"><Brain className="size-5"/>Viabilidad para Machine Learning</h2><p className={analysis.blockers.length?'text-sm font-medium text-danger':'text-sm font-medium text-success'}>{analysis.state}</p><p className="text-xs text-muted-foreground">{options.length} objetivos candidatos · {analysis.dates.length} columnas temporales · {analysis.featureInfo.filter(f=>!f.eligible).length} variables excluidas. Un dataset disponible no demuestra que exista un problema predictivo.</p>{analysis.blockers.length?<div className="border-l-2 border-danger pl-3"><ul className="space-y-1 text-xs">{analysis.blockers.map(b=><li key={b}>{b}</li>)}</ul><Button asChild variant="outline" size="sm" className="mt-2"><Link to="/validacion">Revisar validación</Link></Button></div>:null}<ul className="space-y-1 text-xs text-muted-foreground">{analysis.warnings.map(w=><li key={w}>· {w}</li>)}</ul></section>
+    <section className="space-y-4 border-t border-border pt-5"><h2 className="text-lg font-semibold">Problema y variable objetivo</h2>
+      <label className="block text-sm">Pregunta predictiva o propósito de segmentación<textarea aria-label="Objetivo del experimento" className="mt-2 min-h-20 w-full rounded-md border border-input bg-background p-3 text-sm" value={s.purpose} disabled={s.busy} onChange={e=>{s.setPurpose(e.target.value);s.setConfirmed(false);s.setValidated(false);}} placeholder="¿Qué resultado quieres anticipar y en qué momento?"/></label>
+      <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">Tipo de problema<select aria-label="Tipo de problema" className={`${field} mt-1`} value={s.config.problem} disabled={s.busy} onChange={e=>configure(e.target.value as Problem,e.target.value==='clustering'?'':s.config.target)}>{Object.entries(problemLabels).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><label className="text-xs">Variable objetivo<select aria-label="Variable objetivo" className={`${field} mt-1`} value={s.config.target} disabled={s.config.problem==='clustering'||s.busy} onChange={e=>{const candidate=options.find(c=>c.name===e.target.value);configure(candidate?.problem??s.config.problem,e.target.value);}}><option value="">{s.config.problem==='clustering'?'Sin target (segmentación)':'Seleccionar target'}</option>{dataset.columnProfiles.filter(c=>c.uniqueCount>1).map(c=><option key={c.name} value={c.name}>{c.name}</option>)}</select></label></div>
+      <p className="text-sm font-medium">Problema detectado: {s.config.problem==='classification'?(analysis.classes.length===2?'Clasificación binaria':analysis.classes.length>2?'Clasificación multiclase':'Pendiente de seleccionar target'):s.config.problem==='regression'?(s.config.timeColumn?'Regresión con evaluación temporal; no es un pronóstico ARIMA automático.':'Regresión numérica'):'Clustering exploratorio, sin problema predictivo supervisado'}.</p>
+      {analysis.dates.length?<p className="text-xs text-muted-foreground">Posible serie temporal: {analysis.dates.join(', ')}. La existencia de fechas no demuestra que haya frecuencia regular, estacionalidad ni un horizonte de pronóstico adecuado.</p>:null}
+      <details><summary className="cursor-pointer text-sm font-medium">Targets candidatos · tipo, cardinalidad y distribución</summary><div className="mt-3 divide-y divide-border">{options.length?options.map(c=><div className="py-3 text-xs" key={c.name}><p className="font-mono font-medium">{c.name} · {c.type} · {c.uniqueCount} únicos · {c.missingPct}% nulos</p><p className="mt-1 text-muted-foreground">{c.reason}</p><p className="mt-1">{c.type==='numerica'?`Mín. ${c.min??'—'} · Máx. ${c.max??'—'} · Media ${c.mean??'—'} · Desv. ${c.std??'—'}`:c.topCategories?.map(v=>`${v.value}: ${v.count} (${((v.count/(c.count||1))*100).toFixed(1)}%)`).join(' · ')}</p></div>):<p className="py-3 text-xs">Sin targets plausibles por tipo y cardinalidad.</p>}</div></details>
+      {analysis.classes.length?<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">{analysis.classes.map(c=><span key={c.label}>{c.label}: {c.count} ({c.pct.toFixed(1)}%)</span>)}</div>:null}
+    </section>
+    <section className="space-y-4 border-t border-border pt-5"><h2 className="text-lg font-semibold">Predictores y seguridad metodológica</h2><div className="grid gap-2 sm:grid-cols-2">{analysis.featureInfo.map(f=><label className="flex min-w-0 items-start gap-2 py-1 text-xs" key={f.column}><input type="checkbox" className="mt-0.5" disabled={!f.eligible||s.busy} checked={s.config.features.includes(f.column)} onChange={()=>s.updateConfig({...s.config,features:s.config.features.includes(f.column)?s.config.features.filter(x=>x!==f.column):[...s.config.features,f.column]})}/><span className="min-w-0"><span className="break-words font-mono">{f.column}</span><span className="ml-2 text-muted-foreground">{f.type}</span>{f.reasons.map(r=><span key={r} className="mt-1 block text-muted-foreground">{r}</span>)}</span></label>)}</div>
+      <div className="grid gap-3 sm:grid-cols-3"><label className="text-xs">Orden temporal<select aria-label="Orden temporal" className={`${field} mt-1`} disabled={s.busy} value={s.config.timeColumn} onChange={e=>s.updateConfig({...s.config,timeColumn:e.target.value})}><option value="">Aleatorio estratificado / fijo</option>{analysis.dates.map(d=><option key={d}>{d}</option>)}</select></label><label className="text-xs">Entidad repetida<select aria-label="Entidad repetida" className={`${field} mt-1`} disabled={s.busy} value={s.config.groupColumn} onChange={e=>{const group=e.target.value;s.updateConfig({...s.config,groupColumn:group,features:s.config.features.filter(f=>f!==group)});}}><option value="">Sin entidades repetidas</option>{currentTable.headers.filter(h=>h!==s.config.target&&h!==s.config.timeColumn).map(h=><option key={h}>{h}</option>)}</select></label><label className="text-xs">Proporción de test<select aria-label="Proporción de test" className={`${field} mt-1`} disabled={s.busy} value={s.config.testFraction} onChange={e=>s.updateConfig({...s.config,testFraction:Number(e.target.value)})}>{[.15,.2,.25,.3,.35].map(v=><option key={v} value={v}>{Math.round(v*100)}%</option>)}</select></label></div>
+      {s.config.problem==='clustering'?<label className="block max-w-48 text-xs">Número de grupos<input aria-label="Número de grupos" type="number" min={2} max={10} className={`${field} mt-1`} value={s.config.k} disabled={s.busy} onChange={e=>s.updateConfig({...s.config,k:Number(e.target.value)})}/></label>:null}
+      <label className="flex items-start gap-2 text-xs"><input type="checkbox" className="mt-0.5" checked={s.confirmed} disabled={s.busy} onChange={e=>s.setConfirmed(e.target.checked)}/><span>El objetivo tiene sentido; todos los predictores estarán disponibles antes del resultado. Revisé variables derivadas, fechas, grupos y leakage. La selección usa solo información conocida en el momento de predecir.</span></label>
+    </section>
+    <section className="space-y-3 border-t border-border pt-5"><h2 className="text-lg font-semibold">Modelos candidatos</h2><p className="text-sm text-muted-foreground">{models}</p><p className="text-xs text-muted-foreground">XGBoost no disponible en este motor. Encoding, imputación y escalado se ajustan solo en train, dentro de cada modelo. El primer entrenamiento descarga paquetes científicos; tus registros permanecen en el navegador.</p><div className="flex flex-wrap items-center gap-3"><Button disabled={!canTrain} onClick={()=>setDialog(true)}><Play className="size-4"/>Comparar modelos</Button>{s.busy?<><p role="status" className="text-sm">{s.status||'Calculando…'}</p><Button variant="outline" onClick={s.cancel}><Square className="size-4"/>Cancelar</Button></>:null}</div>{s.purpose.trim().length<10?<p className="text-xs text-muted-foreground">Pendiente: definir un objetivo concreto (mínimo 10 caracteres).</p>:null}{s.error?<p role="alert" className="flex items-start gap-2 break-words text-sm text-danger"><AlertTriangle className="size-4 shrink-0"/>{s.error}</p>:null}</section>
+    <ExperimentResults/>
+    <ConfirmDialog open={dialog} onOpenChange={setDialog} title="Confirmar experimento" description={`Se entrenarán los modelos candidatos con ${s.config.features.length} predictores y ${Math.round(s.config.testFraction*100)}% reservado para test. Los datos de test no se usan para ajustar modelos ni transformaciones. Los resultados son exploratorios y permanecen en esta sesión.`} confirmLabel="Entrenar y comparar" onConfirm={()=>{setDialog(false);void s.train();}}/>
+  </>;
 }
