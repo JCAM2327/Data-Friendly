@@ -76,11 +76,9 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 
 - [x] Parámetro opcional `importance_threshold` para reportar features de baja importancia máxima como candidatos a exclusión en el informe de modelado
 
-
 ## Fase 14 — Integración de baja importancia en el plan
 
 - [x] Inclusión opcional de candidatos de baja importancia como acciones `drop_column` (razón `low_importance`) en el plan de limpieza mediante el parámetro `drop_low_importance`
-
 
 ## Fase 15 — Actualización del informe de modelado tras exclusiones por baja importancia
 
@@ -118,3 +116,8 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 - [x] Análisis exploratorio con distribuciones, correlaciones, series e insights (`eda.py`)
 - [x] Reglas de validación, sugerencias y score multidimensional (`validation.py`)
 - [x] Endpoints `GET /datasets/{id}/eda`, `GET /datasets/{id}/validation/suggestions` y `POST /datasets/{id}/validate`
+
+## Fase 22 — Asesor de modelos y análisis no supervisado
+
+- [x] Módulo `dataclean/advisor.py` con `suggest_modeling_strategy` que recomienda estrategia supervisada o no supervisada, viabilidad de clustering y acciones concretas a partir del perfil de datos y de los informes de objetivo/modelado
+- [x] Pruebas unitarias de recomendaciones para casos con objetivo, sin objetivo y datos insuficientes
