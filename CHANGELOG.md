@@ -7,6 +7,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-11-07
+
+### Añadido
+- Módulo `dataclean/advisor.py` con la función `suggest_modeling_strategy`.
+- Recomendaciones de estrategia de modelado (supervisada, no supervisada o insuficiente) basadas en la presencia de variable objetivo, estado del informe de modelos, número de columnas numéricas utilizables y tamaño de muestra.
+- Detección de viabilidad de clustering (al menos dos columnas numéricas con variación y 20 o más filas).
+- Pruebas unitarias en `tests/test_advisor.py`.
+
+### Cambiado
+- Versión del paquete a 0.31.0.
+- ROADMAP: nueva Fase 22 — Asesor de modelos y análisis no supervisado, marcada como completada.
+
 ## [0.30.0] — 2026-11-07
 
 ### Añadido
