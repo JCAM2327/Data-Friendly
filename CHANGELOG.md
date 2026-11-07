@@ -7,6 +7,40 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-11-07
+
+### Añadido
+- `GET /datasets/{id}/eda` — estadísticas descriptivas, histogramas, correlaciones, dispersión, series temporales e insights accionables.
+- `GET /datasets/{id}/validation/suggestions` — reglas de validación propuestas por nombre y tipo de columna.
+- `POST /datasets/{id}/validate` — evaluación de reglas (`min`, `max`, `range`, `not_null`, `unique`, `date_order`) y score de calidad en seis dimensiones.
+- Módulos `dataclean/inspect.py`, `dataclean/eda.py` y `dataclean/validation.py`.
+- Campo `kind` (numeric, categorical, date, text, boolean) en el perfil de columnas.
+
+### Cambiado
+- `is_identifier` ya no marca como identificador una columna numérica continua con todos sus valores únicos.
+- Versión del paquete y de la API a 0.30.0.
+
+## [0.29.0] — 2026-11-07
+
+### Añadido
+- Endpoints `GET /health`, `GET /datasets` (listado), `DELETE /datasets/{id}` y `GET /datasets/{id}/preview`.
+- Parámetro `target` en `POST /datasets` para fijar explícitamente la variable objetivo.
+- CORS configurable mediante `DATACLEAN_CORS_ORIGINS`.
+- Límite de subida configurable con `DATACLEAN_MAX_UPLOAD_BYTES` (por defecto 50 MB).
+- Retención y limpieza automática de datasets con `DATACLEAN_MAX_AGE_HOURS` y `DATACLEAN_CLEANUP_INTERVAL_SECONDS`.
+- Persistencia del archivo original recibido y snapshot Parquet normalizado para conservar tipos.
+
+### Cambiado
+- El modelado se calcula siempre sobre la vista limpia, aunque el plan todavía no haya sido aceptado.
+- El plan de limpieza protege la columna objetivo de eliminaciones, imputaciones, escalados, codificaciones y correlaciones.
+- `accept` reconstruye el dataset desde el snapshot Parquet en lugar de releer un CSV intermedio.
+- Versión del paquete y de la API a 0.29.0.
+
+### Corregido
+- Pérdida de tipos, ceros a la izquierda y fechas por el round-trip CSV en la persistencia.
+- Modelado sobre datos originales en la API cuando el plan aún no estaba aplicado.
+- Posibilidad de eliminar o codificar la variable objetivo y de añadir pasos de baja importancia sobre columnas inexistentes.
+
 ## [0.28.0] — 2026-11-06
 
 ### Añadido

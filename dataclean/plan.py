@@ -13,11 +13,18 @@ def build_cleaning_plan(
     onehot_drop_first: bool = False,
     drop_low_variance_threshold: float | None = None,
     drop_high_correlation_threshold: float | None = None,
+    target: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Build an explicit cleaning plan with column, action, justification and optional params."""
+    """Build an explicit cleaning plan with column, action, justification and optional params.
+
+    La columna objetivo, cuando se conoce, queda protegida: no se elimina,
+    imputa, recorta, escala ni codifica, y tampoco participa en la detección de
+    alta correlación entre features.
+    """
     plan: list[dict[str, Any]] = []
     n_rows = len(df)
     strategies = imputation_strategies or {}
+    target_name = str(target) if target is not None else None
 
     # Duplicates
     if df.duplicated().any():
@@ -30,6 +37,8 @@ def build_cleaning_plan(
     # Identify columns to drop early (constant, ID, low variance)
     early_dropped: set[str] = set()
     for name in list(df.columns):
+        if target_name is not None and str(name) == target_name:
+            continue
         series = df[name]
         nunique = int(series.nunique(dropna=True))
         missing = int(series.isna().sum())
@@ -78,6 +87,8 @@ def build_cleaning_plan(
         for name in df.columns:
             if str(name) in early_dropped:
                 continue
+            if target_name is not None and str(name) == target_name:
+                continue
             series = df[name]
             numeric = pd.to_numeric(series, errors="coerce")
             if pd.api.types.is_numeric_dtype(series) or (numeric.notna().mean() > 0.8 and len(numeric.dropna()) >= 2):
@@ -124,6 +135,8 @@ def build_cleaning_plan(
     dropped = early_dropped
     for name in df.columns:
         if str(name) in dropped:
+            continue
+        if target_name is not None and str(name) == target_name:
             continue
         series = df[name]
         missing = int(series.isna().sum())
@@ -178,6 +191,8 @@ def build_cleaning_plan(
     for name in df.columns:
         if str(name) in dropped:
             continue
+        if target_name is not None and str(name) == target_name:
+            continue
         series = df[name]
         numeric = pd.to_numeric(series, errors="coerce")
         valid = numeric.dropna()
@@ -201,6 +216,8 @@ def build_cleaning_plan(
         for name in df.columns:
             if str(name) in dropped:
                 continue
+            if target_name is not None and str(name) == target_name:
+                continue
             series = df[name]
             numeric = pd.to_numeric(series, errors="coerce")
             valid = numeric.dropna()
@@ -219,6 +236,8 @@ def build_cleaning_plan(
     if encode_categorical in {"onehot", "ordinal"}:
         for name in df.columns:
             if str(name) in dropped:
+                continue
+            if target_name is not None and str(name) == target_name:
                 continue
             series = df[name]
             if pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(series):

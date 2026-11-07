@@ -97,3 +97,24 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 ## Fase 18 — Visualización de importancias agregadas
 
 - [x] Barras horizontales CSS de la importancia máxima agregada (top 15) en el informe HTML autocontenido
+
+## Fase 19 — Persistencia tipada y plan target-aware
+
+- [x] Archivo original y snapshot Parquet para evitar pérdida de tipos
+- [x] Reconstrucción del dataset desde el snapshot al aceptar el plan
+- [x] Modelado sobre la vista limpia aunque el plan no se haya aplicado
+- [x] Protección de la variable objetivo en el plan de limpieza
+
+## Fase 20 — Contrato de demo pública
+
+- [x] Endpoints de salud, listado, borrado y vista previa
+- [x] Parámetro explícito `target` en la carga
+- [x] CORS, límite de subida y retención temporal configurables
+- [x] Limpieza automática de datasets antiguos
+
+## Fase 21 — EDA y validación de calidad
+
+- [x] Inspección y clasificación de columnas (`inspect.py`)
+- [x] Análisis exploratorio con distribuciones, correlaciones, series e insights (`eda.py`)
+- [x] Reglas de validación, sugerencias y score multidimensional (`validation.py`)
+- [x] Endpoints `GET /datasets/{id}/eda`, `GET /datasets/{id}/validation/suggestions` y `POST /datasets/{id}/validate`

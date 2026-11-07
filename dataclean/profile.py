@@ -4,6 +4,8 @@ from typing import Any
 
 import pandas as pd
 
+from dataclean.inspect import column_kind
+
 
 def profile_dataframe(df: pd.DataFrame) -> dict[str, Any]:
     """Build a column-level profile for a tabular dataset."""
@@ -16,6 +18,7 @@ def profile_dataframe(df: pd.DataFrame) -> dict[str, Any]:
         col: dict[str, Any] = {
             "name": str(name),
             "dtype": str(series.dtype),
+            "kind": column_kind(series),
             "missing": missing,
             "missing_pct": round(100 * missing / n_rows, 2) if n_rows else 0.0,
             "unique": nunique,

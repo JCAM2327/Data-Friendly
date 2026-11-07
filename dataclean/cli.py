@@ -60,6 +60,7 @@ def analyze_frame(
 ) -> tuple[dict, pd.DataFrame | None]:
     profile = profile_dataframe(df)
     issues = detect_issues(df)
+    target_report = detect_target(df, target=target)
     plan = build_cleaning_plan(
         df,
         imputation_strategies=imputation_strategies,
@@ -68,8 +69,8 @@ def analyze_frame(
         onehot_drop_first=onehot_drop_first,
         drop_low_variance_threshold=drop_low_variance_threshold,
         drop_high_correlation_threshold=drop_high_correlation_threshold,
+        target=target_report.get("column"),
     )
-    target_report = detect_target(df, target=target)
     high = sum(1 for issue in issues if issue["severity"] in {"high", "critical"})
     report = {
         "source": source,
@@ -86,11 +87,62 @@ def analyze_frame(
             "target_task": target_report["task"],
         },
     }
+
+    # El modelado se calcula siempre sobre una vista limpia. El resultado solo
+    # se persiste como "applied" cuando el usuario acepta el plan.
+    cleaned_preview = apply_plan(df, plan)
+    cleaned_target = detect_target(
+        cleaned_preview, target=target or target_report.get("column")
+    )
+    report["modeling"] = compare_models(
+        cleaned_preview, cleaned_target, importance_threshold=importance_threshold
+    )
+
+    # Optionally incorporate low-importance candidates as drop steps in the plan
+    if (
+        drop_low_importance
+        and importance_threshold is not None
+        and importance_threshold > 0
+        and report["modeling"].get("low_importance_candidates")
+    ):
+        candidates = report["modeling"]["low_importance_candidates"]
+        current_cols = set(cleaned_preview.columns)
+        existing_drops = {s.get("column") for s in plan if s.get("action") == "drop_column"}
+        added = False
+        for cand in candidates:
+            feat = cand["feature"]
+            if feat in current_cols and feat not in existing_drops:
+                plan.append({
+                    "column": feat,
+                    "action": "drop_column",
+                    "justification": (
+                        f"La columna '{feat}' presenta importancia máxima "
+                        f"{cand['max_importance']:.6f} inferior al umbral {importance_threshold}."
+                    ),
+                    "params": {
+                        "reason": "low_importance",
+                        "max_importance": cand["max_importance"],
+                        "threshold": importance_threshold,
+                    },
+                })
+                existing_drops.add(feat)
+                added = True
+        if added:
+            # Re-apply the full updated plan on the original frame
+            cleaned_preview = apply_plan(df, plan)
+            cleaned_target = detect_target(
+                cleaned_preview, target=target or target_report.get("column")
+            )
+            report["modeling"] = compare_models(
+                cleaned_preview,
+                cleaned_target,
+                importance_threshold=importance_threshold,
+            )
+
     cleaned = None
     if apply:
-        cleaned = apply_plan(df, plan)
-        after_profile = profile_dataframe(cleaned)
-        after_issues = detect_issues(cleaned)
+        after_profile = profile_dataframe(cleaned_preview)
+        after_issues = detect_issues(cleaned_preview)
         report["applied"] = {
             "profile": after_profile,
             "issues": after_issues,
@@ -108,70 +160,10 @@ def analyze_frame(
                     "issue_count": len(after_issues),
                 },
             ),
-            "target": detect_target(cleaned, target=target or target_report.get("column")),
+            "target": cleaned_target,
         }
-    modeling_frame = cleaned if cleaned is not None else df
-    modeling_target = report.get("applied", {}).get("target", target_report)
-    report["modeling"] = compare_models(
-        modeling_frame, modeling_target, importance_threshold=importance_threshold
-    )
-    # Optionally incorporate low-importance candidates as drop steps in the plan
-    if (
-        drop_low_importance
-        and importance_threshold is not None
-        and importance_threshold > 0
-        and report["modeling"].get("low_importance_candidates")
-    ):
-        candidates = report["modeling"]["low_importance_candidates"]
-        current_cols = set(modeling_frame.columns)
-        added = False
-        for cand in candidates:
-            feat = cand["feature"]
-            if feat in current_cols and feat not in {s.get("column") for s in plan if s.get("action") == "drop_column"}:
-                plan.append({
-                    "column": feat,
-                    "action": "drop_column",
-                    "justification": (
-                        f"La columna '{feat}' presenta importancia máxima "
-                        f"{cand['max_importance']:.6f} inferior al umbral {importance_threshold}."
-                    ),
-                    "params": {
-                        "reason": "low_importance",
-                        "max_importance": cand["max_importance"],
-                        "threshold": importance_threshold,
-                    },
-                })
-                added = True
-        if added and apply and cleaned is not None:
-            # Re-apply the full updated plan on the original frame
-            cleaned = apply_plan(df, plan)
-            after_profile = profile_dataframe(cleaned)
-            after_issues = detect_issues(cleaned)
-            report["applied"] = {
-                "profile": after_profile,
-                "issues": after_issues,
-                "quality_delta": quality_delta(
-                    {
-                        "rows": profile["rows"],
-                        "columns": profile["columns"],
-                        "duplicate_rows": profile["duplicate_rows"],
-                        "issue_count": len(issues),
-                    },
-                    {
-                        "rows": after_profile["rows"],
-                        "columns": after_profile["columns"],
-                        "duplicate_rows": after_profile["duplicate_rows"],
-                        "issue_count": len(after_issues),
-                    },
-                ),
-                "target": detect_target(cleaned, target=target or target_report.get("column")),
-            }
-            # Actualizar el informe de modelado con el frame tras las exclusiones por baja importancia
-            report["modeling"] = compare_models(
-                cleaned,
-                report["applied"]["target"],
-                importance_threshold=importance_threshold,
-            )
+        cleaned = cleaned_preview
+
     report["summary"]["model_status"] = report["modeling"]["status"]
     report["summary"]["model_winner"] = report["modeling"]["winner"]
     report["summary"]["plan_steps"] = len(plan)

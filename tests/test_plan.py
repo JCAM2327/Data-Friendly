@@ -1,5 +1,6 @@
 import pandas as pd
 
+from dataclean.cli import analyze_frame
 from dataclean.plan import apply_plan, build_cleaning_plan, quality_delta
 from dataclean.profile import profile_dataframe
 from dataclean.quality import detect_issues
@@ -248,3 +249,39 @@ def test_drop_high_correlation_threshold():
     # Default does not drop
     plan_off = build_cleaning_plan(df)
     assert not any(s.get("params", {}).get("reason") == "high_correlation" for s in plan_off)
+
+
+def test_target_is_protected_from_cleaning_and_correlation():
+    df = pd.DataFrame({
+        "target_id": [0, 1, 0, 1, 0, 1, 0, 1],
+        "feature": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+    })
+    plan = build_cleaning_plan(
+        df,
+        target="target_id",
+        scale_numeric=True,
+        encode_categorical="onehot",
+        drop_high_correlation_threshold=0.95,
+    )
+    target_steps = [step for step in plan if step.get("column") == "target_id"]
+    assert target_steps == []
+    assert not any(
+        step.get("params", {}).get("reason") == "high_correlation"
+        for step in plan
+    )
+
+
+def test_analyze_frame_models_on_cleaned_data_without_applying():
+    df = pd.DataFrame({
+        "target_id": [0, 1] * 40,
+        "feature": list(range(80)),
+    })
+    report, cleaned = analyze_frame(df, source="mem", target="target_id")
+
+    assert cleaned is None
+    assert not any(
+        step.get("action") == "drop_column" and step.get("column") == "target_id"
+        for step in report["plan"]
+    )
+    assert report["modeling"]["status"] == "compared"
+    assert report["modeling"]["column"] == "target_id"
