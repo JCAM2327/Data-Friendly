@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AppLayout } from "../components/layout/AppLayout";
 import { DatasetProvider } from "../state/dataset-store";
+import { MlSessionProvider } from "../state/ml-session";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -128,10 +129,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <DatasetProvider>
+        <MlSessionProvider>
         <AppLayout>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
         </AppLayout>
+        </MlSessionProvider>
       </DatasetProvider>
     </QueryClientProvider>
   );

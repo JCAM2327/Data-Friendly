@@ -1,4 +1,5 @@
 # Pending modules
+- [ ] Correct Advisor integration errors and verify training and prediction with an uploaded file.
 - [ ] Verify Machine Learning and EDA with uploaded data.
 - [x] Build a complete quality, cleaning, validation and EDA report with HTML export and print/PDF.
 - [x] Share validation rules across validation, reports and ML during the session.
