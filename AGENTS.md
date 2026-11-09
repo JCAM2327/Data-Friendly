@@ -13,3 +13,5 @@
 - Keep processing and report calculations in pure services; browser-only exports use explicit click handlers so files never require a server upload.
 - Render reports from a shared ReportDocument for preview, standalone HTML and printing; exports must not include raw dataset rows or reversible table snapshots.
 - Session history is ephemeral and records explicit actions only; viewing a page must not create operations.
+- Keep ML state in a provider inside the dataset provider and invalidate experiments when data, rules or configuration change; navigation must preserve valid experiments.
+- Load the scientific runtime only inside the browser worker from its version-pinned distribution; Node-only Pyodide imports must not enter the application bundle.

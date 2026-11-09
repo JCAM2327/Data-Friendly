@@ -19,8 +19,12 @@ export function ConfirmDialog({
   confirmLabel = "Confirmar",
   destructive = false,
   onConfirm,
+  open,
+  onOpenChange,
 }: {
-  trigger: ReactNode;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description: string;
   confirmLabel?: string;
@@ -28,9 +32,9 @@ export function ConfirmDialog({
   onConfirm: () => void;
 }) {
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent className="glass-strong ring-1 ring-white/60">
+    <AlertDialog {...(open === undefined ? {} : { open })} {...(onOpenChange ? { onOpenChange } : {})}>
+      {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
+      <AlertDialogContent className="glass-strong ring-1 ring-border">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
