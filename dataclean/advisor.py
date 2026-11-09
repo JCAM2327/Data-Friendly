@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
 
 
 def suggest_modeling_strategy(
@@ -13,7 +16,7 @@ def suggest_modeling_strategy(
     """Suggest next modeling or unsupervised analysis steps based on data and prior reports.
 
     Returns a structured recommendation covering supervised continuation,
-    unsupervised clustering viability, and concrete next actions.
+    unsupervised clustering viability (with optional KMeans evaluation), and concrete next actions.
     """
     n_rows = int(len(df))
     numeric_cols = [
@@ -28,6 +31,7 @@ def suggest_modeling_strategy(
     recommendations: list[str] = []
     strategy = "insufficient"
     clustering_viable = n_numeric >= 2 and n_rows >= 20
+    clustering_results: dict[str, Any] | None = None
 
     if target_found and model_status == "compared":
         strategy = "supervised"
@@ -61,6 +65,36 @@ def suggest_modeling_strategy(
             f"Clustering viable: {n_numeric} columnas numéricas con variación y {n_rows} filas. "
             "Probar KMeans con k=2..5 y evaluar silueta."
         )
+        # Evaluación mínima de clustering
+        X = df[numeric_cols].dropna()
+        if len(X) >= 20:
+            try:
+                scaler = StandardScaler()
+                X_scaled = scaler.fit_transform(X)
+                scores: dict[int, float] = {}
+                best_k: int | None = None
+                best_score = -1.0
+                max_k = min(5, max(2, len(X) // 5))
+                for k in range(2, max_k + 1):
+                    km = KMeans(n_clusters=k, random_state=42, n_init=10)
+                    labels = km.fit_predict(X_scaled)
+                    score = float(silhouette_score(X_scaled, labels))
+                    scores[k] = round(score, 4)
+                    if score > best_score:
+                        best_score = score
+                        best_k = k
+                if best_k is not None:
+                    clustering_results = {
+                        "best_k": best_k,
+                        "best_silhouette": round(best_score, 4),
+                        "silhouette_scores": scores,
+                        "n_samples": int(len(X)),
+                    }
+                    recommendations.append(
+                        f"Evaluación KMeans: mejor k={best_k} con silueta {best_score:.3f}."
+                    )
+            except Exception:
+                clustering_results = {"error": "No se pudo evaluar clustering"}
     elif not clustering_viable and not target_found:
         recommendations.append(
             "Datos insuficientes o con pocas variables numéricas para clustering confiable."
@@ -74,7 +108,7 @@ def suggest_modeling_strategy(
         f"Filas={n_rows}, columnas numéricas utilizables={n_numeric}."
     )
 
-    return {
+    result: dict[str, Any] = {
         "strategy": strategy,
         "clustering_viable": clustering_viable,
         "numeric_columns_count": n_numeric,
@@ -83,3 +117,6 @@ def suggest_modeling_strategy(
         "rationale": rationale,
         "target_found": target_found,
     }
+    if clustering_results is not None:
+        result["clustering_results"] = clustering_results
+    return result
