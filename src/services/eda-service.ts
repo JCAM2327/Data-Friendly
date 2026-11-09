@@ -127,7 +127,10 @@ const ENTITY_RE = /(producto|product|categor|cliente|customer|pais|country|regio
 
 export function runEda(t: RawTable, ds: DatasetSummary): EdaResult {
   const profiles = ds.columnProfiles;
-  const idLike = new Set(profiles.filter((p) => p.uniqueCount >= ds.rows * 0.95 && ds.rows > 20).map((p) => p.name));
+  const idLike = new Set(profiles.filter((p) =>
+    /(^id($|_)|_id$|codigo|code)/i.test(p.name) ||
+    (p.type !== 'numerica' && p.type !== 'fecha' && p.uniqueCount >= ds.rows * 0.95 && ds.rows > 20)
+  ).map((p) => p.name));
   const numCols = profiles.filter((p) => p.type === "numerica" && !idLike.has(p.name)).map((p) => p.name);
   const catCols = profiles.filter((p) => (p.type === "categorica" || p.type === "booleana") && !idLike.has(p.name)).map((p) => p.name);
   const dateCols = profiles.filter((p) => p.type === "fecha").map((p) => p.name);
