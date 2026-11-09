@@ -24,7 +24,7 @@ function MlPage(){
   const s=useMlSession();const [dialog,setDialog]=useState(false);
   const options=useMemo(()=>dataset?candidates(dataset):[],[dataset]);
   const analysis=useMemo(()=>dataset&&currentTable?assessMl(currentTable,dataset,validationRules,s.config):null,[dataset,currentTable,validationRules,s.config]);
-  if(!dataset||!currentTable||!analysis)return <><PageHeader title="Machine Learning Advisor"/><EmptyState icon={Database} title="Sin dataset para evaluar" description="Carga datos para evaluar su viabilidad." action={<div className="flex flex-wrap gap-2"><Button asChild><Link to="/datos">Analizar un dataset</Link></Button><Button variant="outline" onClick={loadDemoDataset}>Ver ejemplo de demostración</Button></div>}/></>;
+  if(!dataset||!currentTable||!analysis)return <><PageHeader title="Machine Learning Advisor" description="Evaluación del dataset y experimentos predictivos."/><EmptyState icon={Database} title="Sin dataset para evaluar" description="Carga datos para evaluar su viabilidad." action={<div className="flex flex-wrap gap-2"><Button asChild><Link to="/datos">Analizar un dataset</Link></Button><Button variant="outline" onClick={loadDemoDataset}>Ver ejemplo de demostración</Button></div>}/></>;
   const configure=(problem:Problem,target:string)=>{
     const info=inspectFeatures(currentTable,dataset,target,s.config.groupColumn);
     s.updateConfig({...s.config,problem,target,features:info.filter(f=>f.eligible).map(f=>f.column)});

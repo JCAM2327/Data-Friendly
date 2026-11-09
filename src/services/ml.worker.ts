@@ -15,9 +15,9 @@ self.onmessage = async (event: MessageEvent<{id: string; kind: 'experiment' | 'p
   try {
     self.postMessage({ id, status: ready ? 'Calculando modelos…' : 'Descargando motor científico…' });
     const py = await (ready ??= init());
-    py.globals.set('request_json', JSON.stringify(payload));
+    py.globals['set']('request_json', JSON.stringify(payload));
     const result = await py.runPythonAsync(`json.dumps(clean(${kind === 'experiment' ? 'experiment' : 'predict'}(json.loads(request_json))), allow_nan=False)`);
     self.postMessage({ id, result: JSON.parse(String(result)) });
-    py.globals.delete('request_json');
+    py.globals['delete']('request_json');
   } catch (error) { self.postMessage({ id, error: String(error) }); }
 };
