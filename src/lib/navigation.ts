@@ -8,6 +8,7 @@ import {
   Brain,
   FileText,
   History,
+  MessagesSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -68,6 +69,13 @@ export const navItems: NavItem[] = [
     short: "ML",
     icon: Brain,
     description: "Técnicas recomendadas",
+  },
+  {
+    to: "/asistente",
+    label: "AI Assistant",
+    short: "IA",
+    icon: MessagesSquare,
+    description: "Preguntas sobre el dataset",
   },
   {
     to: "/informes",
