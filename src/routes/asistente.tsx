@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Bot, Send, Square, RotateCcw, MessagesSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/common/GlassCard";
@@ -83,7 +84,7 @@ function AssistantPage() {
         {messages.map((m, i) => m.role === "user"
           ? <div key={i} className="ml-auto w-fit max-w-[85%] rounded-2xl bg-primary px-3 py-2 text-sm text-primary-foreground">{m.content}</div>
           : <div key={i} className="flex gap-2"><Bot className="mt-1 size-4 shrink-0 text-primary" />
-              <div className="assistant-md min-w-0 flex-1 text-sm text-foreground">{m.content ? <ReactMarkdown>{m.content}</ReactMarkdown> : <span className="animate-pulse text-muted-foreground">Analizando resultados…</span>}</div></div>)}
+              <div className="assistant-md min-w-0 flex-1 text-sm text-foreground">{m.content ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown> : <span className="animate-pulse text-muted-foreground">Analizando resultados…</span>}</div></div>)}
         <div ref={end} />
       </div>
       <form className="flex items-end gap-2 border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
