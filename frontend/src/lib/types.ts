@@ -1,0 +1,89 @@
+/** Dominio de la aplicación. Compartido por UI, lógica y servicios de IA/ML. */
+
+export type QualitySeverity = "critica" | "alta" | "media" | "baja";
+
+export type DatasetStatus =
+  | "sin_cargar"
+  | "cargado"
+  | "diagnosticado"
+  | "limpiado"
+  | "validado";
+
+export type ColumnType = "numerica" | "categorica" | "fecha" | "texto" | "booleana";
+
+export interface CategoryCount {
+  value: string;
+  count: number;
+}
+
+export interface ColumnProfile {
+  name: string;
+  type: ColumnType;
+  missingPct: number;
+  uniqueCount: number;
+  sample: string;
+  /** Valores no nulos. */
+  count?: number | undefined;
+  nullCount?: number | undefined;
+  firstValues?: string[] | undefined;
+  min?: string | undefined;
+  max?: string | undefined;
+  mean?: number | undefined;
+  median?: number | undefined;
+  std?: number | undefined;
+  mode?: string | undefined;
+  topCategories?: CategoryCount[] | undefined;
+}
+
+export interface QualityIssue {
+  id: string;
+  title: string;
+  detail: string;
+  severity: QualitySeverity;
+  column?: string | undefined;
+  affectedRows: number;
+  /** Corrección propuesta. Nunca se aplica automáticamente. */
+  suggestedFix?: string | undefined;
+}
+
+export interface DatasetSummary {
+  id: string;
+  name: string;
+  source: string;
+  sizeLabel: string;
+  sheetName?: string | undefined;
+  rows: number;
+  columns: number;
+  missingPct: number;
+  duplicates: number;
+  qualityScore: number;
+  status: DatasetStatus;
+  loadedAt: string;
+  /** true cuando los datos provienen del set de demostración. */
+  isDemo: boolean;
+  columnProfiles: ColumnProfile[];
+  issues: QualityIssue[];
+  preview: Record<string, string>[];
+}
+
+export interface OperationRecord {
+  id: string;
+  label: string;
+  detail: string;
+  at: string;
+  kind: "carga" | "diagnostico" | "limpieza" | "validacion" | "informe" | "ml";
+}
+
+export interface MlRecommendation {
+  id: string;
+  technique: string;
+  family: "supervisado" | "no_supervisado" | "series_temporales" | "nlp";
+  rationale: string;
+  requirement: string;
+  /** Columna sugerida como variable objetivo, si aplica. */
+  suggestedTarget?: string | undefined;
+  /** 0–100: qué tan bien encaja la técnica con el dataset actual. */
+  fitScore?: number | undefined;
+  /** Preparación previa recomendada según el EDA. */
+  preparation?: string[] | undefined;
+}

@@ -1,0 +1,48 @@
+.report-document {
+  --report-surface: var(--card, oklch(1 0 0));
+  --report-ink: var(--foreground, oklch(0.32 0.035 258));
+  --report-subtle: var(--muted-foreground, oklch(0.56 0.025 256));
+  --report-line: var(--border, oklch(0.9 0.012 250));
+  --report-tint: var(--muted, oklch(0.96 0.01 250));
+  --report-alert: var(--danger, oklch(0.6 0.2 22));
+  background: var(--report-surface);
+  color: var(--report-ink);
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 28px;
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
+}
+.report-document header { border-bottom: 2px solid var(--report-line); padding-bottom: 18px; }
+.report-document h2 { font-size: 24px; font-weight: 700; margin: 4px 0; }
+.report-document h3 { font-size: 17px; font-weight: 700; margin: 24px 0 10px; }
+.report-document h4 { font-weight: 700; margin: 16px 0 8px; }
+.report-document p { margin: 8px 0; }
+.report-eyebrow, .report-note { color: var(--report-subtle); font-size: 11px; }
+.report-warning { color: var(--report-alert); font-weight: 700; }
+.report-verdict { font-size: 16px; font-weight: 700; }
+.report-document ul { list-style: disc; padding-left: 20px; }
+.report-table-scroll { overflow-x: auto; margin: 12px 0; }
+.report-document table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.report-document th, .report-document td { border-bottom: 1px solid var(--report-line); padding: 8px; text-align: left; vertical-align: top; }
+.report-document th { background: var(--report-tint); font-weight: 700; }
+@media (max-width: 640px) {
+  .report-document { padding: 16px; }
+  .report-document table { min-width: 580px; }
+}
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  body:has(.report-document) aside, body:has(.report-document) nav,
+  body:has(.report-document) header:not(.report-document header),
+  body:has(.report-document) main > div > :not(.report-document),
+  body:has(.report-document) .app-backdrop { display: none !important; }
+  body:has(.report-document) main { padding: 0 !important; }
+  body:has(.report-document) main > div { max-width: none !important; }
+  .report-document { padding: 0; font-size: 11px; }
+  .report-document table { min-width: 0; table-layout: fixed; }
+  .report-document tr { break-inside: avoid; }
+  .report-document h3, .report-document h4 { break-after: avoid; }
+  .report-document thead { display: table-header-group; }
+  .report-table-scroll { overflow: visible; }
+}
