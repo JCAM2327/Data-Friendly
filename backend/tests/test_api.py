@@ -151,3 +151,76 @@ def test_advisor_endpoint():
     assert isinstance(body["recommendations"], list)
     assert "clustering_viable" in body
     assert body["strategy"] in {"supervised", "unsupervised", "insufficient"}
+
+
+def test_user_id_is_validated():
+    response = client.get("/datasets", headers={"X-User-Id": "../bad"})
+    assert response.status_code == 400
+
+
+def test_upload_sanitizes_filename():
+    response = client.post(
+        "/datasets",
+        files={"file": ("../../evil.csv", SAMPLE.read_bytes(), "text/csv")},
+        headers=HEADERS,
+    )
+    assert response.status_code == 201
+    assert response.json()["filename"] == "evil.csv"
+
+
+def test_preview_contract_and_nan_are_json_null():
+    response = client.post(
+        "/datasets",
+        files={"file": ("nan.csv", b"a,b\n1,\n2,3\n", "text/csv")},
+        headers=HEADERS,
+    )
+    assert response.status_code == 201
+    dataset_id = response.json()["dataset_id"]
+
+    preview = client.get(f"/datasets/{dataset_id}/preview", headers=HEADERS)
+    assert preview.status_code == 200
+    body = preview.json()
+    assert body["applied"] is False
+    assert body["source"] == "original"
+    assert body["total_rows"] == 2
+    assert body["returned_rows"] == 2
+    assert len(body["rows"]) == 2
+    assert body["rows"][0]["b"] is None
+
+
+def test_cleaned_csv_download_contract():
+    data = _upload_sample()
+    dataset_id = data["dataset_id"]
+
+    before = client.get(f"/datasets/{dataset_id}/cleaned.csv", headers=HEADERS)
+    assert before.status_code == 400
+
+    accept = client.post(f"/datasets/{dataset_id}/accept", headers=HEADERS)
+    assert accept.status_code == 200
+
+    cleaned = client.get(f"/datasets/{dataset_id}/cleaned.csv", headers=HEADERS)
+    assert cleaned.status_code == 200
+    assert cleaned.headers["content-type"].startswith("text/csv")
+    assert cleaned.content
+
+
+def test_importances_404_without_modeling():
+    response = client.post(
+        "/datasets",
+        files={"file": ("one.csv", b"a\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n", "text/csv")},
+        headers=HEADERS,
+    )
+    assert response.status_code == 201
+    dataset_id = response.json()["dataset_id"]
+
+    importances = client.get(f"/datasets/{dataset_id}/importances", headers=HEADERS)
+    assert importances.status_code == 404
+
+
+def test_report_includes_advisor_section():
+    data = _upload_sample()
+    dataset_id = data["dataset_id"]
+
+    report = client.get(f"/datasets/{dataset_id}/report.html", headers=HEADERS)
+    assert report.status_code == 200
+    assert "Asesor de modelos" in report.text

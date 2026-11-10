@@ -4,7 +4,7 @@ Producto único que reúne una interfaz web para explorar, limpiar, validar y an
 
 ## Estado
 
-Fase 1: monorepo creado e importación inicial de los dos componentes. La integración funcional, el despliegue y la limpieza de branding están pendientes.
+Fase 1 completada: monorepo creado e importación inicial de los dos componentes. Fase 2 completada: backend estabilizado con tests de regresión. La integración funcional, el despliegue y la limpieza de branding están pendientes.
 
 ## Estructura
 

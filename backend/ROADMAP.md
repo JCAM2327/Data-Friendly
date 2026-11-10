@@ -1,4 +1,4 @@
-# Roadmap — DataClean AI
+# Roadmap — Data Friendly Backend
 
 ## Fase 0 — Núcleo de perfil y calidad
 
@@ -128,3 +128,15 @@ Implementación base de `dataclean/plan.py` restaurada (build_cleaning_plan, app
 - [x] Evaluación mínima de clustering (KMeans + silueta) cuando es viable
 - [x] Inclusión de las recomendaciones y resultados de clustering en el informe HTML
 - [x] Pruebas de API para el endpoint de asesor
+
+## Fase 24 — Estabilización para Data Friendly
+
+- [x] Carga en memoria sin archivos temporales ni nombres sin sanear
+- [x] Validación estricta de `X-User-Id`
+- [x] `NaN` convertido a `null` en la vista previa
+- [x] Restauración de `GET /datasets/{id}/cleaned.csv`
+- [x] Restauración de los contratos de preview e importancias
+- [x] CORS sin credenciales y configuración leída en runtime
+- [x] Asesor del informe sobre datos limpios cuando el plan está aplicado
+- [x] OpenAPI con response models, descripciones y tags
+- [x] Tests de regresión de API

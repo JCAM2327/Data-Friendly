@@ -53,9 +53,18 @@ El asistente recibe metadatos y resultados calculados. No recibe filas crudas de
 
 - El backend actual genera planes de limpieza automáticos; la UI necesita operaciones granulares.
 - Falta un endpoint para ejecutar modelado con parámetros elegidos por el usuario.
-- Hay que restaurar contratos de preview, importancias y descarga del dataset limpio.
 - El frontend todavía contiene procesamiento local que se retirará de producción.
-- El branding del backend y del frontend debe unificarse como Data Friendly.
+- El branding del frontend todavía debe unificarse como Data Friendly.
+
+## Completado en la estabilización del backend
+
+- Carga en memoria, sin archivos temporales en `/tmp`.
+- Saneamiento de nombres de archivo y validación de `X-User-Id`.
+- Preview con `NaN` convertido a `null`.
+- Contratos restaurados de preview, importancias y descarga del CSV limpio.
+- CORS sin credenciales y configuración leída en runtime.
+- Asesor del informe calculado sobre el dataset limpio cuando corresponde.
+- OpenAPI con response models, descripciones y tags.
 
 ## Pendientes de infraestructura
 
