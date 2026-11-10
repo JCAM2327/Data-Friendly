@@ -15,3 +15,4 @@
 - Session history is ephemeral and records explicit actions only; viewing a page must not create operations.
 - Keep ML state in a provider inside the dataset provider and invalidate experiments when data, rules or configuration change; navigation must preserve valid experiments.
 - Load the scientific runtime only inside the browser worker from its version-pinned distribution; Node-only Pyodide imports must not enter the application bundle.
+- The AI Data Assistant receives only `buildAssistantContext` output (metadata and computed results, never rows, previews or sample values) via `/api/assistant`; its chat is a single in-memory conversation, matching the ephemeral session.
