@@ -1,0 +1,287 @@
+import pandas as pd
+
+from dataclean.cli import analyze_frame
+from dataclean.plan import apply_plan, build_cleaning_plan, quality_delta
+from dataclean.profile import profile_dataframe
+from dataclean.quality import detect_issues
+
+
+def test_plan_lists_column_action_and_justification():
+    df = pd.DataFrame({
+        "id": [1, 1, 2, 3],
+        "edad": [30, 30, None, 40],
+        "ciudad": ["A", "A", "A", "A"],
+        "codigo": ["x1", "x1", "x2", "x3"],
+    })
+    plan = build_cleaning_plan(df)
+    assert plan
+    for step in plan:
+        assert "column" in step
+        assert step["action"]
+        assert step["justification"]
+
+    actions = {(step["column"], step["action"]) for step in plan}
+    assert (None, "drop_duplicates") in actions
+    assert ("ciudad", "drop_column") in actions
+    assert ("id", "drop_column") in actions
+    assert ("edad", "impute_median") in actions
+    assert ("edad", "add_missing_indicator") in actions
+
+
+def test_apply_plan_cleans_and_reports_delta():
+    df = pd.DataFrame({
+        "id": ["a", "a", "b", "c"],
+        "edad": [30, 30, None, 40],
+        "ciudad": ["MDQ", "MDQ", "MDQ", "MDQ"],
+        "segmento": ["x", "x", "y", None],
+    })
+    before = {
+        "rows": len(df),
+        "columns": df.shape[1],
+        "duplicate_rows": int(df.duplicated().sum()),
+        "issue_count": len(detect_issues(df)),
+    }
+    plan = build_cleaning_plan(df)
+    cleaned = apply_plan(df, plan)
+    after_profile = profile_dataframe(cleaned)
+    after = {
+        "rows": after_profile["rows"],
+        "columns": after_profile["columns"],
+        "duplicate_rows": after_profile["duplicate_rows"],
+        "issue_count": len(detect_issues(cleaned)),
+    }
+    delta = quality_delta(before, after)
+
+    assert cleaned.duplicated().sum() == 0
+    assert "ciudad" not in cleaned.columns
+    assert "id" not in cleaned.columns
+    assert cleaned["edad"].isna().sum() == 0
+    assert "edad__missing" in cleaned.columns
+    assert bool((cleaned.loc[cleaned["edad__missing"] == 1, "edad__missing"] == 1).all())
+    assert cleaned["segmento"].isna().sum() == 0
+    assert delta["rows_removed"] == 1
+    assert delta["duplicate_rows_after"] == 0
+    assert delta["issues_resolved"] > 0
+
+
+def test_clip_outliers_iqr():
+    df = pd.DataFrame({
+        "valor": [10, 12, 11, 13, 1000, 9, 14, 10, 11, 12],
+    })
+    plan = build_cleaning_plan(df)
+    clip_steps = [s for s in plan if s["action"] == "clip_outliers"]
+    assert len(clip_steps) == 1
+    step = clip_steps[0]
+    assert step["column"] == "valor"
+    assert "lower" in step["params"]
+    assert "upper" in step["params"]
+    assert step["params"]["count"] >= 1
+
+    cleaned = apply_plan(df, plan)
+    lower = step["params"]["lower"]
+    upper = step["params"]["upper"]
+    assert cleaned["valor"].max() <= upper
+    assert cleaned["valor"].min() >= lower
+    assert cleaned["valor"].max() < 1000
+
+
+def test_configurable_imputation_strategies():
+    df = pd.DataFrame({
+        "edad": [10, None, 30, 40],
+        "ciudad": ["X", None, "X", "Y"],
+    })
+    strategies = {
+        "__numeric__": "mean",
+        "__categorical__": {"strategy": "constant", "value": "Unknown"},
+    }
+    plan = build_cleaning_plan(df, strategies)
+    actions = {(s["column"], s["action"]) for s in plan}
+    assert ("edad", "impute_mean") in actions
+    assert ("ciudad", "impute_constant") in actions
+
+    cleaned = apply_plan(df, plan)
+    assert cleaned["edad"].isna().sum() == 0
+    assert abs(cleaned["edad"].iloc[1] - 26.666667) < 0.01  # mean of 10,30,40
+    assert cleaned["ciudad"].iloc[1] == "Unknown"
+    assert cleaned["edad__missing"].iloc[1] == 1
+    assert cleaned["ciudad__missing"].iloc[1] == 1
+
+
+def test_scale_numeric_standardization():
+    df = pd.DataFrame({
+        "valor": [10.0, 20.0, 30.0, 40.0],
+        "categoria": ["a", "b", "a", "c"],
+    })
+    plan = build_cleaning_plan(df, scale_numeric=True)
+    scale_steps = [s for s in plan if s["action"] == "scale_standard"]
+    assert len(scale_steps) == 1
+    step = scale_steps[0]
+    assert step["column"] == "valor"
+    assert "mean" in step["params"]
+    assert "std" in step["params"]
+    mean = step["params"]["mean"]
+    std = step["params"]["std"]
+    assert abs(mean - 25.0) < 0.01
+    assert abs(std - 11.18034) < 0.1  # population std of [10,20,30,40]
+
+    cleaned = apply_plan(df, plan)
+    expected = (df["valor"] - mean) / std
+    assert (cleaned["valor"] - expected).abs().max() < 1e-6
+    # Categorical unchanged
+    assert list(cleaned["categoria"]) == list(df["categoria"])
+    # Default (scale_numeric=False) does not add the step
+    plan_off = build_cleaning_plan(df, scale_numeric=False)
+    assert not any(s["action"] == "scale_standard" for s in plan_off)
+
+
+def test_encode_categorical_onehot_and_ordinal():
+    df = pd.DataFrame({
+        "categoria": ["a", "b", "a", "c", "b", None],
+        "valor": [1, 2, 3, 4, 5, 6],
+    })
+    # one-hot
+    plan_oh = build_cleaning_plan(df, encode_categorical="onehot")
+    oh_steps = [s for s in plan_oh if s["action"] == "encode_onehot"]
+    assert len(oh_steps) == 1
+    step = oh_steps[0]
+    assert step["column"] == "categoria"
+    cats = step["params"]["categories"]
+    assert set(cats) == {"a", "b", "c"}
+
+    cleaned_oh = apply_plan(df, plan_oh)
+    assert "categoria" not in cleaned_oh.columns
+    for cat in ["a", "b", "c"]:
+        assert f"categoria_{cat}" in cleaned_oh.columns
+    # Imputation of mode ("a") occurs before encoding, so 3 a's
+    assert cleaned_oh["categoria_a"].sum() == 3
+    assert cleaned_oh["categoria_b"].sum() == 2
+    assert cleaned_oh["categoria_c"].sum() == 1
+    # original numeric preserved
+    assert "valor" in cleaned_oh.columns
+
+    # ordinal
+    plan_ord = build_cleaning_plan(df, encode_categorical="ordinal")
+    ord_steps = [s for s in plan_ord if s["action"] == "encode_ordinal"]
+    assert len(ord_steps) == 1
+    mapping = ord_steps[0]["params"]["mapping"]
+    # frequency: a:2, b:2, c:1 → a and b get 0/1 (order by value_counts which is stable-ish)
+    assert set(mapping.keys()) == {"a", "b", "c"}
+    assert all(v in {0, 1, 2} for v in mapping.values())
+
+    cleaned_ord = apply_plan(df, plan_ord)
+    assert "categoria" in cleaned_ord.columns
+    assert cleaned_ord["categoria"].dtype == int
+    assert set(cleaned_ord["categoria"].unique()) <= set(mapping.values())
+    # No -1 because imputation precedes encoding
+    assert (cleaned_ord["categoria"] == -1).sum() == 0
+
+    # default does not encode
+    plan_none = build_cleaning_plan(df)
+    assert not any(s["action"] in {"encode_onehot", "encode_ordinal"} for s in plan_none)
+
+
+def test_onehot_drop_first():
+    df = pd.DataFrame({
+        "categoria": ["a", "b", "a", "c", "b"],
+        "valor": [1, 2, 3, 4, 5],
+    })
+    plan = build_cleaning_plan(df, encode_categorical="onehot", onehot_drop_first=True)
+    steps = [s for s in plan if s["action"] == "encode_onehot"]
+    assert len(steps) == 1
+    step = steps[0]
+    assert step["params"].get("drop_first") is True
+    cats = step["params"]["categories"]
+    # sorted: a, b, c → drop a
+    assert set(cats) == {"b", "c"}
+    assert step["params"].get("dropped_category") == "a"
+
+    cleaned = apply_plan(df, plan)
+    assert "categoria" not in cleaned.columns
+    assert "categoria_a" not in cleaned.columns
+    assert "categoria_b" in cleaned.columns
+    assert "categoria_c" in cleaned.columns
+    # All zeros for reference category 'a'
+    a_rows = df["categoria"] == "a"
+    assert cleaned.loc[a_rows, ["categoria_b", "categoria_c"]].sum().sum() == 0
+    assert cleaned["categoria_b"].sum() == 2
+    assert cleaned["categoria_c"].sum() == 1
+
+
+def test_drop_low_variance_threshold():
+    df = pd.DataFrame({
+        "const": [5, 5, 5, 5],
+        "lowvar": [1.0, 1.01, 0.99, 1.0],
+        "highvar": [1, 10, 100, 1000],
+        "cat": ["a", "b", "a", "b"],
+    })
+    plan = build_cleaning_plan(df, drop_low_variance_threshold=0.05)
+    actions = {(s["column"], s["action"]) for s in plan}
+    assert ("const", "drop_column") in actions
+    assert ("lowvar", "drop_column") in actions
+    assert ("highvar", "drop_column") not in actions
+    low_step = next(s for s in plan if s["column"] == "lowvar")
+    assert low_step["params"]["reason"] == "low_variance"
+    assert "std" in low_step["params"]
+    assert low_step["params"]["threshold"] == 0.05
+
+
+def test_drop_high_correlation_threshold():
+    df = pd.DataFrame({
+        "a": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "b": [1.1, 2.1, 3.0, 4.1, 5.0],  # high corr with a
+        "c": [10.0, 1.0, 20.0, 2.0, 30.0],  # low corr
+        "d": [5.0, 4.0, 3.0, 2.0, 1.0],  # negative high corr with a
+    })
+    plan = build_cleaning_plan(df, drop_high_correlation_threshold=0.95)
+    actions = {(s["column"], s["action"]) for s in plan}
+    # Should drop one of a/b and one of a/d (or equivalent)
+    drop_steps = [s for s in plan if s["action"] == "drop_column" and s.get("params", {}).get("reason") == "high_correlation"]
+    assert len(drop_steps) >= 1
+    dropped_cols = {s["column"] for s in drop_steps}
+    # At least b or a, and d or a should be candidates; verify params
+    for step in drop_steps:
+        assert step["params"]["reason"] == "high_correlation"
+        assert "correlated_with" in step["params"]
+        assert step["params"]["correlation"] >= 0.95
+        assert step["params"]["threshold"] == 0.95
+    # c should not be dropped for correlation
+    assert "c" not in dropped_cols
+    # Default does not drop
+    plan_off = build_cleaning_plan(df)
+    assert not any(s.get("params", {}).get("reason") == "high_correlation" for s in plan_off)
+
+
+def test_target_is_protected_from_cleaning_and_correlation():
+    df = pd.DataFrame({
+        "target_id": [0, 1, 0, 1, 0, 1, 0, 1],
+        "feature": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+    })
+    plan = build_cleaning_plan(
+        df,
+        target="target_id",
+        scale_numeric=True,
+        encode_categorical="onehot",
+        drop_high_correlation_threshold=0.95,
+    )
+    target_steps = [step for step in plan if step.get("column") == "target_id"]
+    assert target_steps == []
+    assert not any(
+        step.get("params", {}).get("reason") == "high_correlation"
+        for step in plan
+    )
+
+
+def test_analyze_frame_models_on_cleaned_data_without_applying():
+    df = pd.DataFrame({
+        "target_id": [0, 1] * 40,
+        "feature": list(range(80)),
+    })
+    report, cleaned = analyze_frame(df, source="mem", target="target_id")
+
+    assert cleaned is None
+    assert not any(
+        step.get("action") == "drop_column" and step.get("column") == "target_id"
+        for step in report["plan"]
+    )
+    assert report["modeling"]["status"] == "compared"
+    assert report["modeling"]["column"] == "target_id"
