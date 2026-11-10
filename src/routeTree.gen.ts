@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AsistenteRouteImport } from './routes/asistente'
 import { Route as CalidadRouteImport } from './routes/calidad'
 import { Route as DatosRouteImport } from './routes/datos'
 import { Route as EdaRouteImport } from './routes/eda'
@@ -18,10 +19,16 @@ import { Route as InformesRouteImport } from './routes/informes'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as MlRouteImport } from './routes/ml'
 import { Route as ValidacionRouteImport } from './routes/validacion'
+import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AsistenteRoute = AsistenteRouteImport.update({
+  id: '/asistente',
+  path: '/asistente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CalidadRoute = CalidadRouteImport.update({
@@ -64,9 +71,15 @@ const ValidacionRoute = ValidacionRouteImport.update({
   path: '/validacion',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAssistantRoute = ApiAssistantRouteImport.update({
+  id: '/api/assistant',
+  path: '/api/assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/asistente': typeof AsistenteRoute
   '/calidad': typeof CalidadRoute
   '/datos': typeof DatosRoute
   '/eda': typeof EdaRoute
@@ -75,9 +88,11 @@ export interface FileRoutesByFullPath {
   '/limpieza': typeof LimpiezaRoute
   '/ml': typeof MlRoute
   '/validacion': typeof ValidacionRoute
+  '/api/assistant': typeof ApiAssistantRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/asistente': typeof AsistenteRoute
   '/calidad': typeof CalidadRoute
   '/datos': typeof DatosRoute
   '/eda': typeof EdaRoute
@@ -86,10 +101,12 @@ export interface FileRoutesByTo {
   '/limpieza': typeof LimpiezaRoute
   '/ml': typeof MlRoute
   '/validacion': typeof ValidacionRoute
+  '/api/assistant': typeof ApiAssistantRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/asistente': typeof AsistenteRoute
   '/calidad': typeof CalidadRoute
   '/datos': typeof DatosRoute
   '/eda': typeof EdaRoute
@@ -98,11 +115,13 @@ export interface FileRoutesById {
   '/limpieza': typeof LimpiezaRoute
   '/ml': typeof MlRoute
   '/validacion': typeof ValidacionRoute
+  '/api/assistant': typeof ApiAssistantRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/asistente'
     | '/calidad'
     | '/datos'
     | '/eda'
@@ -111,9 +130,11 @@ export interface FileRouteTypes {
     | '/limpieza'
     | '/ml'
     | '/validacion'
+    | '/api/assistant'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/asistente'
     | '/calidad'
     | '/datos'
     | '/eda'
@@ -122,9 +143,11 @@ export interface FileRouteTypes {
     | '/limpieza'
     | '/ml'
     | '/validacion'
+    | '/api/assistant'
   id:
     | '__root__'
     | '/'
+    | '/asistente'
     | '/calidad'
     | '/datos'
     | '/eda'
@@ -133,10 +156,12 @@ export interface FileRouteTypes {
     | '/limpieza'
     | '/ml'
     | '/validacion'
+    | '/api/assistant'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AsistenteRoute: typeof AsistenteRoute
   CalidadRoute: typeof CalidadRoute
   DatosRoute: typeof DatosRoute
   EdaRoute: typeof EdaRoute
@@ -145,6 +170,7 @@ export interface RootRouteChildren {
   LimpiezaRoute: typeof LimpiezaRoute
   MlRoute: typeof MlRoute
   ValidacionRoute: typeof ValidacionRoute
+  ApiAssistantRoute: typeof ApiAssistantRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/asistente': {
+      id: '/asistente'
+      path: '/asistente'
+      fullPath: '/asistente'
+      preLoaderRoute: typeof AsistenteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/calidad': {
@@ -212,11 +245,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ValidacionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/assistant': {
+      id: '/api/assistant'
+      path: '/api/assistant'
+      fullPath: '/api/assistant'
+      preLoaderRoute: typeof ApiAssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AsistenteRoute: AsistenteRoute,
   CalidadRoute: CalidadRoute,
   DatosRoute: DatosRoute,
   EdaRoute: EdaRoute,
@@ -225,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   LimpiezaRoute: LimpiezaRoute,
   MlRoute: MlRoute,
   ValidacionRoute: ValidacionRoute,
+  ApiAssistantRoute: ApiAssistantRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
